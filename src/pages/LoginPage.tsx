@@ -1,7 +1,21 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../lib/i18n';
-import { Lock, Mail, ArrowRight, ShieldCheck, UserCheck, AlertCircle } from 'lucide-react';
+import {
+  Lock,
+  Mail,
+  ArrowRight,
+  ShieldCheck,
+  UserCheck,
+  AlertCircle,
+  Shield,
+  Zap,
+  TrendingUp,
+  Building2,
+  CheckCircle2,
+  Clock,
+  Sparkles
+} from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const { signIn } = useAuth();
@@ -31,170 +45,358 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="h-screen w-screen max-h-screen overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between relative selection:bg-emerald-500/30 selection:text-emerald-300">
       
-      {/* Top Header Controls */}
-      <div className="absolute top-4 right-4 flex items-center gap-2">
-        <div className="bg-slate-900 border border-slate-800 rounded-lg p-0.5 flex items-center shadow-inner">
-          <button
-            type="button"
-            onClick={() => setLanguage('en')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-              language === 'en' ? 'bg-emerald-500 text-white' : 'text-slate-400'
-            }`}
-          >
-            EN
-          </button>
-          <button
-            type="button"
-            onClick={() => setLanguage('te')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-              language === 'te' ? 'bg-emerald-500 text-white' : 'text-slate-400'
-            }`}
-          >
-            తెలుగు
-          </button>
-        </div>
-      </div>
+      {/* Dynamic Ambient Background Glows */}
+      <div className="absolute top-[-10%] left-[-5%] w-[450px] h-[450px] rounded-full bg-emerald-500/10 blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[-15%] right-[-5%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[140px] pointer-events-none" />
+      <div className="absolute top-[40%] left-[30%] w-[350px] h-[350px] rounded-full bg-teal-500/5 blur-[120px] pointer-events-none" />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {/* Brand Logo */}
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 p-0.5 shadow-glow-brand flex items-center justify-center mb-4">
-          <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center font-black text-emerald-400 text-2xl tracking-wider">
-            ₹
+      {/* Subtle Grid Backdrop Pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+
+      {/* TOP COMPACT HEADER BAR */}
+      <header className="relative z-10 w-full px-5 lg:px-10 py-3 flex items-center justify-between border-b border-white/[0.06] bg-slate-950/40 backdrop-blur-md shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-emerald-300 p-0.5 shadow-glow-brand flex items-center justify-center">
+            <div className="w-full h-full bg-[#030712] rounded-[10px] flex items-center justify-center font-black text-emerald-400 text-sm tracking-wider">
+              ₹
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-black tracking-tight text-white uppercase">
+              iThink AI
+            </span>
+            <span className="hidden sm:inline text-xs text-slate-400 font-medium">
+              | Daily Collection Terminal
+            </span>
+            <span className="px-1.5 py-0.5 text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">
+              v2.4
+            </span>
           </div>
         </div>
 
-        <h2 className="text-center text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-          {t('loginTitle')}
-        </h2>
-        <p className="mt-1 text-center text-xs sm:text-sm text-slate-400">
-          {t('loginSubtitle')}
-        </p>
+        <div className="flex items-center gap-3 sm:gap-4">
+          {/* Live Cutoff Status Pill */}
+          <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="font-medium">12:00 AM IST Cutoff Guard</span>
+          </div>
 
-        {/* Quick Demo Selector */}
-        <div className="mt-5 p-2 bg-slate-900/80 rounded-2xl border border-slate-800 text-center">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
-            One-Click Account Switcher
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          {/* Bilingual Language Switcher */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-0.5 flex items-center shadow-inner">
             <button
               type="button"
-              onClick={() => setFastLogin('admin@ithinkai.in')}
-              className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
-                email === 'admin@ithinkai.in'
-                  ? 'bg-purple-500 text-white shadow-sm'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              onClick={() => setLanguage('en')}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                language === 'en'
+                  ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Admin
+              EN
             </button>
             <button
               type="button"
-              onClick={() => setFastLogin('operator1@ithinkai.in')}
-              className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
-                email === 'operator1@ithinkai.in'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              onClick={() => setLanguage('te')}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                language === 'te'
+                  ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <UserCheck className="w-3.5 h-3.5" />
-              Op 1
-            </button>
-            <button
-              type="button"
-              onClick={() => setFastLogin('operator2@ithinkai.in')}
-              className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
-                email === 'operator2@ithinkai.in'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              Op 2
-            </button>
-            <button
-              type="button"
-              onClick={() => setFastLogin('operator3@ithinkai.in')}
-              className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
-                email === 'operator3@ithinkai.in'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              Op 3
+              తెలుగు
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-slate-900/90 py-8 px-5 sm:px-10 shadow-2xl rounded-3xl border border-slate-800/80 backdrop-blur-xl">
-          {errorMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMsg}</span>
+      {/* MAIN VIEWPORT CONTENT (ZERO SCROLL FIT FOR 15" LAPTOPS) */}
+      <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-10 py-3 sm:py-4 flex items-center overflow-y-auto lg:overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-10 w-full items-center my-auto">
+          
+          {/* LEFT COLUMN: ENTERPRISE SHOWCASE (STAR & ARBO PLAST) */}
+          <div className="hidden lg:flex lg:col-span-7 flex-col justify-center space-y-4 xl:space-y-5 pr-2">
+            
+            {/* Pill Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold w-fit tracking-wide">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Fortune-5 Dual Business Fiscal Architecture</span>
             </div>
-          )}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
+            {/* Main Headline */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                {t('email')}
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3.5 pl-11 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm font-medium transition-all"
-                  placeholder="operator1@ithinkai.in"
-                />
-                <Mail className="w-5 h-5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <h1 className="text-2xl xl:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                Daily Fiscal Collection & Slip Reconciliation Desk
+              </h1>
+              <p className="mt-2 text-xs xl:text-sm text-slate-400 leading-relaxed max-w-xl">
+                Streamlined money collection tracker replacing physical ledger sheets. Pure daily receipts, split cash/PhonePe reconciliation, and automated midnight fiscal seal.
+              </p>
+            </div>
+
+            {/* LIVE VERIFIED BATCH TERMINAL CARD */}
+            <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-500 opacity-70" />
+              
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800/70">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                    Audited Daily Slips • Real Physical Sheet
+                  </span>
+                </div>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center gap-1 font-semibold">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  Operator 1 Verified
+                </span>
+              </div>
+
+              {/* 2-Business Breakdown Grid */}
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                {/* STAR Business */}
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/60">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-black tracking-wider text-emerald-400">STAR</span>
+                    <span className="text-[10px] text-slate-400 font-mono">8 Slips</span>
+                  </div>
+                  <div className="text-lg xl:text-xl font-black text-white font-mono">
+                    ₹ 61,500<span className="text-xs text-slate-400">.00</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+                    <span>Cash: ₹9,500</span>
+                    <span className="text-purple-400">PhonePe: ₹52,000</span>
+                  </div>
+                </div>
+
+                {/* ARBO PLAST Business */}
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/60">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-black tracking-wider text-teal-400">ARBO PLAST</span>
+                    <span className="text-[10px] text-slate-400 font-mono">1 Slip</span>
+                  </div>
+                  <div className="text-lg xl:text-xl font-black text-white font-mono">
+                    ₹ 12,500<span className="text-xs text-slate-400">.00</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+                    <span>Cash: ₹0</span>
+                    <span className="text-purple-400">PhonePe: ₹12,500</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Combined Grand Total Ribbon */}
+              <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-slate-300 font-medium">Reconciled Batch Grand Total:</span>
+                </div>
+                <div className="text-base font-black text-emerald-400 font-mono">
+                  ₹ 74,000.00
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                {t('password')}
-              </label>
-              <div className="relative">
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3.5 pl-11 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm font-medium transition-all"
-                  placeholder="••••••••••••"
-                />
-                <Lock className="w-5 h-5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            {/* Architecture Guarantees Checklist */}
+            <div className="grid grid-cols-3 gap-2 pt-1 text-[11px] text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Postgres RLS Enforced</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span>Strict 12:00 AM Seal</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>Zero Ledger Drift</span>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full min-h-[52px] flex items-center justify-center gap-2 px-6 py-3.5 border border-transparent rounded-xl shadow-glow-brand text-base font-bold text-slate-950 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50"
-            >
-              {loading ? (
-                <span>{t('signingIn')}</span>
-              ) : (
-                <>
-                  <span>{t('signIn')}</span>
-                  <ArrowRight className="w-5 h-5" />
-                </>
+          </div>
+
+          {/* RIGHT COLUMN: EXECUTIVE LOGIN CONSOLE */}
+          <div className="col-span-1 lg:col-span-5 flex flex-col justify-center max-w-md mx-auto w-full">
+            
+            <div className="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-5 xl:p-6 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+              
+              {/* Top Accent Gradient Border */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-500" />
+
+              {/* Mobile-only brand badge */}
+              <div className="lg:hidden flex items-center gap-2 mb-3">
+                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-xs">
+                  ₹
+                </div>
+                <span className="text-xs font-bold text-white uppercase tracking-wider">
+                  Daily Collection Tracker
+                </span>
+              </div>
+
+              {/* Console Title */}
+              <div>
+                <h2 className="text-lg xl:text-xl font-bold text-white tracking-tight">
+                  {t('loginTitle')}
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Authorize terminal via role or credentials
+                </p>
+              </div>
+
+              {/* ONE-CLICK ROLE SELECTOR (Admin + 3 Operators) */}
+              <div className="mt-3.5 p-2 bg-slate-950/70 rounded-xl border border-slate-800/80">
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 px-0.5">
+                  <span>Fast Role Switcher</span>
+                  <span className="text-emerald-400">1-Tap Preset</span>
+                </div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setFastLogin('admin@ithinkai.in')}
+                    className={`px-1.5 py-1.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-0.5 ${
+                      email === 'admin@ithinkai.in'
+                        ? 'bg-purple-600 text-white shadow-md ring-1 ring-purple-400/50'
+                        : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span className="text-[10px] tracking-tight">Admin</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFastLogin('operator1@ithinkai.in')}
+                    className={`px-1.5 py-1.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-0.5 ${
+                      email === 'operator1@ithinkai.in'
+                        ? 'bg-emerald-500 text-slate-950 shadow-md ring-1 ring-emerald-300/60'
+                        : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span className="text-[10px] tracking-tight">Op 1</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFastLogin('operator2@ithinkai.in')}
+                    className={`px-1.5 py-1.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-0.5 ${
+                      email === 'operator2@ithinkai.in'
+                        ? 'bg-emerald-500 text-slate-950 shadow-md ring-1 ring-emerald-300/60'
+                        : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span className="text-[10px] tracking-tight">Op 2</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFastLogin('operator3@ithinkai.in')}
+                    className={`px-1.5 py-1.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-0.5 ${
+                      email === 'operator3@ithinkai.in'
+                        ? 'bg-emerald-500 text-slate-950 shadow-md ring-1 ring-emerald-300/60'
+                        : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span className="text-[10px] tracking-tight">Op 3</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Error Alert */}
+              {errorMsg && (
+                <div className="mt-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2 animate-shake">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{errorMsg}</span>
+                </div>
               )}
-            </button>
-          </form>
 
-          <div className="mt-6 pt-4 border-t border-slate-800 text-center text-xs text-slate-500">
-            Protected by PostgreSQL Row Level Security (RLS)
+              {/* Form Controls */}
+              <form className="mt-3 space-y-3" onSubmit={handleSubmit}>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    {t('email')}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-3 py-2.5 pl-9 bg-slate-950/90 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-xs sm:text-sm font-medium transition-all"
+                      placeholder="operator1@ithinkai.in"
+                    />
+                    <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    {t('password')}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-3 py-2.5 pl-9 bg-slate-950/90 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-xs sm:text-sm font-medium transition-all"
+                      placeholder="••••••••••••"
+                    />
+                    <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full mt-2 py-3 px-4 rounded-xl shadow-glow-brand text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+                >
+                  {loading ? (
+                    <span>{t('signingIn')}</span>
+                  ) : (
+                    <>
+                      <span>Authorize Terminal Access</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* RLS Security Footnote */}
+              <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500">
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                  PostgreSQL 17 RLS Active
+                </span>
+                <span className="font-mono">Pass: Tracker@2026</span>
+              </div>
+
+            </div>
+
           </div>
+
         </div>
-      </div>
+      </main>
+
+      {/* FOOTER BAR (COMPACT & CLEAN) */}
+      <footer className="relative z-10 w-full px-5 lg:px-10 py-2.5 border-t border-white/[0.06] bg-slate-950/60 backdrop-blur-md flex items-center justify-between text-[11px] text-slate-500 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="text-slate-400 font-medium">iThink AI Technologies</span>
+          <span className="hidden sm:inline text-slate-600">•</span>
+          <span className="hidden sm:inline">Fortune-5 Daily Collection Platform</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="hidden md:inline text-slate-500">STAR & ARBO PLAST</span>
+          <span className="font-mono text-emerald-400/80">Render + Supabase Live</span>
+        </div>
+      </footer>
+
     </div>
   );
 };
+
+export default LoginPage;
