@@ -1,0 +1,189 @@
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { LanguagePreference } from '../types/database';
+
+export const translations = {
+  en: {
+    appTitle: 'Daily Collection Tracker',
+    brandTag: 'Fortune-5 Finance',
+    loginTitle: 'Sign In to Tracker',
+    loginSubtitle: 'Enter your credentials to manage daily collections',
+    email: 'Email Address',
+    password: 'Password',
+    signIn: 'Sign In',
+    signingIn: 'Signing in...',
+    signOut: 'Sign Out',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    thisWeek: 'This Week',
+    thisMonth: 'This Month',
+    lastMonth: 'Last Month',
+    dailyView: 'Daily View',
+    dashboard: 'Dashboard',
+    userManagement: 'Operators',
+    allBusinesses: 'All Businesses',
+    starBusiness: 'STAR',
+    arboPlastBusiness: 'ARBO PLAST',
+    totalCollected: 'Total Collected',
+    totalCash: 'Cash Collected',
+    totalPhonePe: 'PhonePe Collected',
+    grandTotal: 'Grand Total',
+    cash: 'Cash',
+    phonepe: 'PhonePe',
+    balanceOwed: 'Balance Owed',
+    remainingOwed: 'Remaining balance dealer owes',
+    dealerName: 'Dealer / Shop Name',
+    note: 'Note / Remarks',
+    slipPhoto: 'Slip Photo',
+    optional: 'Optional',
+    mandatory: 'Required',
+    addNewEntry: '+ Add Collection Entry',
+    saveEntry: 'Save Collection',
+    saving: 'Saving...',
+    savedSuccess: 'Entry Saved Successfully!',
+    selectBusiness: 'Select Business Line',
+    takePhoto: 'Camera',
+    chooseGallery: 'Upload Slip',
+    slipAttached: 'Slip Attached',
+    noEntriesToday: 'No collection entries recorded for today yet.',
+    noEntriesDate: 'No collections found for this date.',
+    time: 'Time',
+    collector: 'Operator',
+    actions: 'Actions',
+    edit: 'Edit',
+    delete: 'Delete',
+    cancel: 'Cancel',
+    confirmDelete: 'Confirm Deletion',
+    deleteWarning: 'Are you sure you want to delete this collection entry? This action will be audit logged.',
+    reasonForEdit: 'Reason for Edit (Required for Audit)',
+    reasonForDelete: 'Reason for Delete (Required for Audit)',
+    updateEntry: 'Update Entry',
+    exportExcel: 'Export Excel',
+    exportCsv: 'Export CSV',
+    prevDay: 'Prev Day',
+    nextDay: 'Next Day',
+    offlineNotice: 'You are currently offline. Check connection.',
+    offlineSaveBlock: 'Cannot save entry while offline.',
+    searchDealer: 'Search dealer name...',
+    allOperators: 'All Operators',
+    paymentMode: 'Payment Mode',
+    allModes: 'All Modes',
+    cashOnly: 'Cash Only',
+    phonePeOnly: 'PhonePe Only',
+    splitOnly: 'Split Payment',
+    subtotal: 'Subtotal',
+    varianceVsYesterday: 'vs Yesterday',
+    entriesCount: 'Entries',
+  },
+  te: {
+    appTitle: 'రోజువారీ వసూళ్ల ట్రాకర్',
+    brandTag: 'వసూళ్ల ఖాతా',
+    loginTitle: 'లాగిన్ అవ్వండి',
+    loginSubtitle: 'రోజువారీ వసూళ్లను నమోదు చేయడానికి లాగిన్ చేయండి',
+    email: 'ఈమెయిల్ చిరునామా',
+    password: 'పాస్‌వర్డ్',
+    signIn: 'లాగిన్ చేయండి',
+    signingIn: 'లాగిన్ అవుతోంది...',
+    signOut: 'లాగౌట్',
+    today: 'ఈరోజు',
+    yesterday: 'నిన్న',
+    thisWeek: 'ఈ వారం',
+    thisMonth: 'ఈ నెల',
+    lastMonth: 'గత నెల',
+    dailyView: 'రోజువారీ వివరాలు',
+    dashboard: 'డాష్‌బోర్డ్',
+    userManagement: 'ఆపరేటర్లు',
+    allBusinesses: 'అన్ని వ్యాపారాలు',
+    starBusiness: 'స్టార్ (STAR)',
+    arboPlastBusiness: 'ఆర్బో ప్లాస్ట్ (ARBO PLAST)',
+    totalCollected: 'మొత్తం వసూలు',
+    totalCash: 'నగదు వసూలు (Cash)',
+    totalPhonePe: 'ఫోన్‌పే వసూలు (PhonePe)',
+    grandTotal: 'మొత్తం కలిపి',
+    cash: 'నగదు (Cash)',
+    phonepe: 'ఫోన్‌పే (PhonePe)',
+    balanceOwed: 'మిగిలిన బాకీ',
+    remainingOwed: 'డీలర్ ఇంకా చెల్లించాల్సిన బాకీ',
+    dealerName: 'డీలర్ / షాప్ పేరు',
+    note: 'గమనిక / వివరాలు',
+    slipPhoto: 'స్లిప్ ఫోటో',
+    optional: 'ఐచ్ఛికం',
+    mandatory: 'తప్పనిసరి',
+    addNewEntry: '+ కొత్త వసూలు ఎంట్రీని జోడించండి',
+    saveEntry: 'ఎంట్రీని సేవ్ చేయండి',
+    saving: 'సేవ్ అవుతోంది...',
+    savedSuccess: 'ఎంట్రీ విజయవంతంగా సేవ్ చేయబడింది!',
+    selectBusiness: 'వ్యాపారాన్ని ఎంచుకోండి',
+    takePhoto: 'కెమెరా',
+    chooseGallery: 'స్లిప్ అప్‌లోడ్',
+    slipAttached: 'స్లిప్ జతచేయబడింది',
+    noEntriesToday: 'ఈరోజు ఇంకా ఎటువంటి వసూలు ఎంట్రీలు నమోదు కాలేదు.',
+    noEntriesDate: 'ఈ తేదీన ఎటువంటి వసూళ్లు నమోదు కాలేదు.',
+    time: 'సమయం',
+    collector: 'ఆపరేటర్',
+    actions: 'చర్యలు',
+    edit: 'సవరించు',
+    delete: 'తొలగించు',
+    cancel: 'రద్దు చేయి',
+    confirmDelete: 'తొలగింపును నిర్ధారించండి',
+    deleteWarning: 'మీరు ఖచ్చితంగా ఈ ఎంట్రీని తొలగించాలనుకుంటున్నారా? ఇది ఆడిట్ లాగ్‌లో నమోదు చేయబడుతుంది.',
+    reasonForEdit: 'సవరణకు కారణం (ఆడిట్ కోసం తప్పనిసరి)',
+    reasonForDelete: 'తొలగింపుకు కారణం (ఆడిట్ కోసం తప్పనిసరి)',
+    updateEntry: 'ఎంట్రీని నవీకరించండి',
+    exportExcel: 'ఎక్సెల్ డౌన్‌లోడ్',
+    exportCsv: 'CSV డౌన్‌లోడ్',
+    prevDay: 'మునుపటి రోజు',
+    nextDay: 'తర్వాతి రోజు',
+    offlineNotice: 'ఇంటర్నెట్ కనెక్షన్ లేదు. కనెక్షన్ తనిఖీ చేయండి.',
+    offlineSaveBlock: 'ఆఫ్‌లైన్‌లో ఉన్నప్పుడు సేవ్ చేయడం సాధ్యం కాదు.',
+    searchDealer: 'డీలర్ పేరును శోధించండి...',
+    allOperators: 'అందరు ఆపరేటర్లు',
+    paymentMode: 'చెల్లింపు విధానం',
+    allModes: 'అన్ని విధానాలు',
+    cashOnly: 'నగదు మాత్రమే (Cash)',
+    phonePeOnly: 'ఫోన్‌పే మాత్రమే (PhonePe)',
+    splitOnly: 'స్ప్లిట్ చెల్లింపు (Cash + PhonePe)',
+    subtotal: 'ఉప మొత్తం (Subtotal)',
+    varianceVsYesterday: 'నిన్నటితో పోలిస్తే',
+    entriesCount: 'ఎంట్రీలు',
+  }
+};
+
+type TranslationKey = keyof typeof translations.en;
+
+interface LanguageContextType {
+  language: LanguagePreference;
+  setLanguage: (lang: LanguagePreference) => void;
+  t: (key: TranslationKey) => string;
+}
+
+const LanguageContext = createContext<LanguageContextType>({
+  language: 'en',
+  setLanguage: () => {},
+  t: (key) => translations.en[key] || key,
+});
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<LanguagePreference>(() => {
+    const saved = localStorage.getItem('app_lang');
+    return (saved === 'te' || saved === 'en') ? saved : 'en';
+  });
+
+  const setLanguage = (lang: LanguagePreference) => {
+    setLanguageState(lang);
+    localStorage.setItem('app_lang', lang);
+  };
+
+  const t = (key: TranslationKey): string => {
+    return translations[language][key] || translations.en[key] || key;
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+
+export function useLanguage() {
+  return useContext(LanguageContext);
+}
