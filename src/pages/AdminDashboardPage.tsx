@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../lib/i18n';
-import { Header } from '../components/Header';
 import { formatAppDate, formatINR, getCurrentISTDateString, toISODateString } from '../lib/formatters';
 import {
   TrendingUp,
   TrendingDown,
   Calendar,
   Layers,
-  Sparkles,
-  Building2,
   Users,
   Smartphone,
   Banknote,
   ArrowRight,
+  RefreshCw,
+  LogOut,
+  BarChart3,
+  Shield,
+  Activity,
+  CheckCircle2
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -22,7 +26,8 @@ interface DashboardProps {
 }
 
 export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, onSelectDate }) => {
-  const { t } = useLanguage();
+  const { signOut } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
 
   const [loading, setLoading] = useState<boolean>(true);
   const [metrics, setMetrics] = useState<{
@@ -31,7 +36,6 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
     variancePercent: number;
     thisWeekTotal: number;
     thisMonthTotal: number;
-    lastMonthTotal: number;
     cashShare: number;
     phonePeShare: number;
     starTotal: number;
@@ -44,7 +48,6 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
     variancePercent: 0,
     thisWeekTotal: 0,
     thisMonthTotal: 0,
-    lastMonthTotal: 0,
     cashShare: 0,
     phonePeShare: 0,
     starTotal: 0,
@@ -59,7 +62,6 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
     async function loadAnalytics() {
       setLoading(true);
       try {
-        // Fetch last 35 days of sheets & entries
         const { data: sheets } = await supabase
           .from('daily_sheets')
           .select('id, sheet_date, collector_id');
@@ -83,7 +85,6 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
           sheetDateMap[s.id] = s.sheet_date;
         });
 
-        // Compute Dates
         const todayDate = new Date(todayIST);
         const yDate = new Date(todayDate);
         yDate.setDate(yDate.getDate() - 1);
@@ -93,14 +94,12 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
         let yesterdaySum = 0;
         let weekSum = 0;
         let monthSum = 0;
-        let lastMonthSum = 0;
         let cashSum = 0;
         let phonePeSum = 0;
         let starSum = 0;
         let arboSum = 0;
         const opTotals: { [name: string]: number } = {};
 
-        // 7-day trend bucket
         const trendMap: { [date: string]: { total: number; cash: number; phonepe: number } } = {};
         for (let i = 6; i >= 0; i--) {
           const d = new Date(todayDate);
@@ -114,86 +113,79 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
 
         entries?.forEach((entry: any) => {
           const date = sheetDateMap[entry.sheet_id] || entry.created_at.split('T')[0];
-          const amount = entry.total_collected || 0;
-          const cash = entry.cash_amount || 0;
-          const phonepe = entry.phonepe_amount || 0;
+          const amount = Number(entry.total_collected) || 0;
+          const cash = Number(entry.cash_amount) || 0;
+          const phonepe = Number(entry.phonepe_amount) || 0;
           const opName = opMap[entry.collector_id] || 'Operator';
 
-          // Business totals
-          if (entry.business_name === 'STAR') starSum += amount;
-          if (entry.business_name === 'ARBO PLAST') arboSum += amount;
-
-          // Today & Yesterday
           if (date === todayIST) {
             todaySum += amount;
             cashSum += cash;
             phonePeSum += phonepe;
-            opTotals[opName] = (opTotals[opName] || 0) + amount;
+            if (entry.business_name === 'STAR') starSum += amount;
+            if (entry.business_name === 'ARBO PLAST') arboSum += amount;
           }
+
           if (date === yesterdayIST) {
             yesterdaySum += amount;
           }
 
-          // Trend
+          const eDate = new Date(date);
+          const diffDays = Math.floor((todayDate.getTime() - eDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays >= 0 && diffDays < 7) {
+            weekSum += amount;
+          }
+
+          if (eDate.getMonth() === nowMonth && eDate.getFullYear() === nowYear) {
+            monthSum += amount;
+          }
+
           if (trendMap[date]) {
             trendMap[date].total += amount;
             trendMap[date].cash += cash;
             trendMap[date].phonepe += phonepe;
           }
 
-          // Month
-          const eDate = new Date(date);
-          if (eDate.getMonth() === nowMonth && eDate.getFullYear() === nowYear) {
-            monthSum += amount;
-          }
-          // Last Month
-          const lastM = nowMonth === 0 ? 11 : nowMonth - 1;
-          const lastMY = nowMonth === 0 ? nowYear - 1 : nowYear;
-          if (eDate.getMonth() === lastM && eDate.getFullYear() === lastMY) {
-            lastMonthSum += amount;
-          }
+          opTotals[opName] = (opTotals[opName] || 0) + amount;
         });
 
-        // Variance %
         let variance = 0;
         if (yesterdaySum > 0) {
-          variance = ((todaySum - yesterdaySum) / yesterdaySum) * 100;
+          variance = Math.round(((todaySum - yesterdaySum) / yesterdaySum) * 100);
         } else if (todaySum > 0) {
           variance = 100;
         }
 
-        const dailyTrend = Object.entries(trendMap).map(([dStr, val]) => ({
-          date: dStr,
-          total: val.total,
-          cash: val.cash,
-          phonepe: val.phonepe,
-        }));
+        const todayCombined = cashSum + phonePeSum;
+        const cShare = todayCombined > 0 ? Math.round((cashSum / todayCombined) * 100) : 0;
+        const pShare = todayCombined > 0 ? 100 - cShare : 0;
 
-        const totalCashPhonePe = cashSum + phonePeSum || 1;
-        const cashShare = Math.round((cashSum / totalCashPhonePe) * 100);
-        const phonePeShare = 100 - cashShare;
+        const trendArray = Object.entries(trendMap).map(([date, d]) => ({
+          date,
+          total: d.total,
+          cash: d.cash,
+          phonepe: d.phonepe,
+        }));
 
         setMetrics({
           todayTotal: todaySum,
           yesterdayTotal: yesterdaySum,
-          variancePercent: parseFloat(variance.toFixed(1)),
-          thisWeekTotal: Object.values(trendMap).reduce((a, b) => a + b.total, 0),
+          variancePercent: variance,
+          thisWeekTotal: weekSum,
           thisMonthTotal: monthSum,
-          lastMonthTotal: lastMonthSum,
-          cashShare,
-          phonePeShare,
+          cashShare: cShare,
+          phonePeShare: pShare,
           starTotal: starSum,
           arboTotal: arboSum,
           operatorTotals: opTotals,
-          dailyTrend,
+          dailyTrend: trendArray,
         });
       } catch (err) {
-        console.error('Analytics load error:', err);
+        console.error('Failed to load analytics:', err);
       } finally {
         setLoading(false);
       }
     }
-
     loadAnalytics();
   }, [todayIST]);
 
@@ -203,50 +195,115 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col pb-24">
-      <Header currentTab="dashboard" onTabChange={onNavigateTab} />
-
-      <main className="max-w-7xl 2xl:max-w-[1500px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-5 space-y-6">
+    <div className="h-screen w-screen max-h-screen overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between selection:bg-emerald-500/30 selection:text-emerald-300">
+      
+      {/* 1. POWER BI TOP RIBBON (48PX) */}
+      <header className="h-12 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-20">
         
-        {/* Dashboard Title */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Executive Analytics & Performance
-            </h2>
-            <p className="text-xs text-slate-400">
-              Live intelligence across STAR and ARBO PLAST collections
-            </p>
+        {/* Brand & Tab Navigation */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xs">
+            ₹
           </div>
-          <div className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
-            {formatAppDate(todayIST)}
+          <span className="text-xs font-black tracking-tight text-white uppercase hidden xl:inline">
+            iThink AI
+          </span>
+
+          {/* Segmented Tab Switcher */}
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+            <button
+              type="button"
+              onClick={() => onNavigateTab('daily')}
+              className="px-2.5 py-1 text-xs font-medium rounded-md text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Daily</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('dashboard')}
+              className="px-2.5 py-1 text-xs font-bold rounded-md bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-sm flex items-center gap-1"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Analytics</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('users')}
+              className="px-2.5 py-1 text-xs font-medium rounded-md text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Operators</span>
+            </button>
           </div>
         </div>
 
-        {/* 4 Executive Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* Center: Live Date Tag */}
+        <div className="flex items-center gap-2 font-mono text-xs font-bold bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
+          <Activity className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Intelligence Engine • {formatAppDate(todayIST)}</span>
+        </div>
+
+        {/* Right Controls */}
+        <div className="flex items-center gap-2">
+          {/* Language Switcher */}
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-0.5 flex items-center">
+            <button
+              type="button"
+              onClick={() => setLanguage('en')}
+              className={`px-1.5 py-0.5 text-[11px] font-bold rounded ${
+                language === 'en' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'
+              }`}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguage('te')}
+              className={`px-1.5 py-0.5 text-[11px] font-bold rounded ${
+                language === 'te' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'
+              }`}
+            >
+              తె
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={signOut}
+            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
+            title="Sign Out"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </header>
+
+      {/* 2. MAIN POWER BI DASHBOARD CANVAS (ZERO PAGE OVERFLOW) */}
+      <main className="flex-1 overflow-y-auto w-full px-3 sm:px-4 py-2.5 space-y-3">
+        
+        {/* KPI Scorecards Strip (Height ~64px) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
           {/* Card 1: Today */}
           <div
             onClick={() => handleDrilldown(todayIST)}
-            className="cursor-pointer rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-emerald-500/30 p-4 shadow-glow-brand hover:border-emerald-500 transition-all group"
+            className="p-3 rounded-xl bg-slate-900/90 border border-emerald-500/40 hover:border-emerald-400 cursor-pointer transition-all flex flex-col justify-between"
           >
-            <div className="flex items-center justify-between text-xs text-slate-400 font-semibold mb-1">
-              <span>{t('today')}</span>
-              <ArrowRight className="w-4 h-4 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+              <span>Today's Total</span>
+              <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
             </div>
-            <div className="font-mono text-2xl font-black text-white">
+            <div className="font-mono text-lg sm:text-xl font-black text-white mt-1">
               {formatINR(metrics.todayTotal)}
             </div>
-            <div className="flex items-center gap-1.5 mt-2">
+            <div className="flex items-center gap-1 text-[10px] font-bold mt-1">
               {metrics.variancePercent >= 0 ? (
-                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  +{metrics.variancePercent}% {t('varianceVsYesterday')}
+                <span className="text-emerald-400 flex items-center gap-0.5">
+                  <TrendingUp className="w-3 h-3" /> +{metrics.variancePercent}% vs yesterday
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-[11px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-md">
-                  <TrendingDown className="w-3.5 h-3.5" />
-                  {metrics.variancePercent}% {t('varianceVsYesterday')}
+                <span className="text-rose-400 flex items-center gap-0.5">
+                  <TrendingDown className="w-3 h-3" /> {metrics.variancePercent}% vs yesterday
                 </span>
               )}
             </div>
@@ -259,194 +316,211 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
               y.setDate(y.getDate() - 1);
               handleDrilldown(toISODateString(y));
             }}
-            className="cursor-pointer rounded-2xl bg-slate-900/90 border border-slate-800 p-4 shadow-glass hover:border-slate-700 transition-all group"
+            className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 cursor-pointer transition-all flex flex-col justify-between"
           >
-            <div className="flex items-center justify-between text-xs text-slate-400 font-semibold mb-1">
-              <span>{t('yesterday')}</span>
-              <ArrowRight className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+              <span>Yesterday Close</span>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
             </div>
-            <div className="font-mono text-2xl font-black text-slate-200">
+            <div className="font-mono text-lg sm:text-xl font-black text-slate-200 mt-1">
               {formatINR(metrics.yesterdayTotal)}
             </div>
-            <p className="text-[11px] text-slate-500 mt-2">Previous Day Close</p>
+            <span className="text-[10px] text-slate-500 mt-1">Previous Day Verified</span>
           </div>
 
           {/* Card 3: This Week */}
-          <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 shadow-glass">
-            <span className="text-xs text-slate-400 font-semibold block mb-1">{t('thisWeek')}</span>
-            <div className="font-mono text-2xl font-black text-slate-200">
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">This Week (7D)</span>
+            <div className="font-mono text-lg sm:text-xl font-black text-slate-200 mt-1">
               {formatINR(metrics.thisWeekTotal)}
             </div>
-            <p className="text-[11px] text-slate-500 mt-2">Past 7 Days Rolling</p>
+            <span className="text-[10px] text-slate-500 mt-1">7-Day Rolling Volume</span>
           </div>
 
           {/* Card 4: This Month */}
-          <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 shadow-glass">
-            <span className="text-xs text-slate-400 font-semibold block mb-1">{t('thisMonth')}</span>
-            <div className="font-mono text-2xl font-black text-slate-200">
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">This Month (MTD)</span>
+            <div className="font-mono text-lg sm:text-xl font-black text-slate-200 mt-1">
               {formatINR(metrics.thisMonthTotal)}
             </div>
-            <p className="text-[11px] text-slate-500 mt-2">Month-to-Date Cumulative</p>
+            <span className="text-[10px] text-slate-500 mt-1">Month-to-Date Volume</span>
           </div>
         </div>
 
-        {/* Visual Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* 2x2 Analytics Tiles Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           
-          {/* Chart 1: Payment Mode Split (Cash vs PhonePe) */}
-          <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 shadow-glass space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-purple-400" />
-                Payment Mode Breakdown (Today)
-              </h3>
-              <span className="text-xs font-mono text-slate-400 font-bold">
+          {/* Tile 1: Payment Mode Split */}
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5 text-purple-400" />
+                Payment Mode Split (Today)
+              </span>
+              <span className="font-mono font-bold text-xs text-slate-300">
                 {formatINR(metrics.todayTotal)}
               </span>
             </div>
 
             {/* Split Progress Bar */}
-            <div className="w-full h-4 rounded-full overflow-hidden bg-slate-950 flex p-0.5 border border-slate-800">
+            <div className="my-2.5 w-full h-3.5 rounded-full overflow-hidden bg-slate-950 flex p-0.5 border border-slate-800">
               <div
                 style={{ width: `${metrics.phonePeShare}%` }}
-                className="h-full rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-500"
-                title={`PhonePe: ${metrics.phonePeShare}%`}
-              ></div>
+                className="h-full rounded-full bg-gradient-to-r from-purple-500 to-indigo-500"
+              />
               <div
                 style={{ width: `${metrics.cashShare}%` }}
-                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
-                title={`Cash: ${metrics.cashShare}%`}
-              ></div>
+                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="p-3 rounded-2xl bg-slate-950 border border-purple-500/20">
-                <div className="flex items-center gap-1.5 text-xs text-purple-400 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-                  PhonePe / UPI ({metrics.phonePeShare}%)
-                </div>
-                <div className="font-mono text-lg font-black text-white mt-1">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2 rounded-lg bg-slate-950 border border-purple-500/20">
+                <span className="text-[10px] font-bold text-purple-400">PhonePe ({metrics.phonePeShare}%)</span>
+                <div className="font-mono font-bold text-sm text-white mt-0.5">
                   {formatINR(metrics.todayTotal * (metrics.phonePeShare / 100))}
                 </div>
               </div>
-
-              <div className="p-3 rounded-2xl bg-slate-950 border border-emerald-500/20">
-                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                  Cash ({metrics.cashShare}%)
-                </div>
-                <div className="font-mono text-lg font-black text-white mt-1">
+              <div className="p-2 rounded-lg bg-slate-950 border border-emerald-500/20">
+                <span className="text-[10px] font-bold text-emerald-400">Cash ({metrics.cashShare}%)</span>
+                <div className="font-mono font-bold text-sm text-white mt-0.5">
                   {formatINR(metrics.todayTotal * (metrics.cashShare / 100))}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Chart 2: Business Breakdown (STAR vs ARBO PLAST) */}
-          <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 shadow-glass space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
-                <Layers className="w-4 h-4 text-emerald-400" />
-                Dual-Business Distribution
-              </h3>
-              <span className="text-xs text-slate-400 font-mono">Cumulative</span>
+          {/* Tile 2: Dual Business Distribution */}
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                Dual Business Distribution (STAR & ARBO)
+              </span>
+              <span className="font-mono font-bold text-xs text-slate-300">
+                {formatINR(metrics.starTotal + metrics.arboTotal)}
+              </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 rounded-2xl bg-slate-950 border border-emerald-500/30">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                  <Sparkles className="w-4 h-4" />
-                  STAR
-                </div>
-                <div className="font-mono text-xl font-extrabold text-white mt-2">
+            {/* Progress Bar */}
+            <div className="my-2.5 w-full h-3.5 rounded-full overflow-hidden bg-slate-950 flex p-0.5 border border-slate-800">
+              <div
+                style={{
+                  width: `${
+                    metrics.starTotal + metrics.arboTotal > 0
+                      ? Math.round((metrics.starTotal / (metrics.starTotal + metrics.arboTotal)) * 100)
+                      : 50
+                  }%`,
+                }}
+                className="h-full rounded-full bg-emerald-500"
+              />
+              <div
+                style={{
+                  width: `${
+                    metrics.starTotal + metrics.arboTotal > 0
+                      ? Math.round((metrics.arboTotal / (metrics.starTotal + metrics.arboTotal)) * 100)
+                      : 50
+                  }%`,
+                }}
+                className="h-full rounded-full bg-teal-400"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2 rounded-lg bg-slate-950 border border-emerald-500/20">
+                <span className="text-[10px] font-bold text-emerald-400">STAR Wholesale</span>
+                <div className="font-mono font-bold text-sm text-white mt-0.5">
                   {formatINR(metrics.starTotal)}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">Primary Wholesale Line</p>
               </div>
-
-              <div className="p-4 rounded-2xl bg-slate-950 border border-purple-500/30">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-400">
-                  <Building2 className="w-4 h-4" />
-                  ARBO PLAST
-                </div>
-                <div className="font-mono text-xl font-extrabold text-white mt-2">
+              <div className="p-2 rounded-lg bg-slate-950 border border-teal-500/20">
+                <span className="text-[10px] font-bold text-teal-400">ARBO PLAST</span>
+                <div className="font-mono font-bold text-sm text-white mt-0.5">
                   {formatINR(metrics.arboTotal)}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">Plastics & Polymers</p>
               </div>
             </div>
+          </div>
 
-            {/* Operator Tally */}
-            <div className="pt-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                Today's Operator Collections
+          {/* Tile 3: 7-Day Trend Chart */}
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-blue-400" />
+                7-Day Rolling Trend
               </span>
-              <div className="space-y-1.5">
-                {Object.entries(metrics.operatorTotals).map(([opName, opTotal]) => (
+              <span className="text-[10px] text-slate-400 font-mono">Tap day to inspect</span>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 items-end h-24 pt-3">
+              {metrics.dailyTrend.map((d) => {
+                const maxVal = Math.max(...metrics.dailyTrend.map((t) => t.total), 1);
+                const heightPercent = Math.max(Math.round((d.total / maxVal) * 100), 10);
+                const isToday = d.date === todayIST;
+
+                return (
                   <div
-                    key={opName}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs"
+                    key={d.date}
+                    onClick={() => handleDrilldown(d.date)}
+                    className="flex flex-col items-center gap-1 cursor-pointer group"
                   >
-                    <span className="font-bold text-white flex items-center gap-2">
-                      <Users className="w-3.5 h-3.5 text-slate-500" />
-                      {opName}
-                    </span>
-                    <span className="font-mono font-extrabold text-emerald-400">
-                      {formatINR(opTotal)}
+                    <div className="w-full bg-slate-950 rounded-t h-16 flex items-end justify-center p-0.5">
+                      <div
+                        style={{ height: `${heightPercent}%` }}
+                        className={`w-full rounded-t transition-all ${
+                          isToday ? 'bg-emerald-400' : 'bg-slate-700 group-hover:bg-teal-400'
+                        }`}
+                        title={`${d.date}: ${formatINR(d.total)}`}
+                      />
+                    </div>
+                    <span className="text-[9px] font-mono text-slate-400 truncate">
+                      {d.date.split('-').slice(1).join('/')}
                     </span>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 7-Day Trend Chart with Tap-to-Drilldown */}
-        <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 shadow-glass space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-extrabold text-base text-white">7-Day Collection History</h3>
-              <p className="text-xs text-slate-400">Tap any day bar to open its complete daily register</p>
+                );
+              })}
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 pt-4">
-            {metrics.dailyTrend.map((day) => {
-              const maxVal = Math.max(...metrics.dailyTrend.map((d) => d.total), 1);
-              const heightPercent = Math.max(Math.round((day.total / maxVal) * 100), 12);
-              const isToday = day.date === todayIST;
+          {/* Tile 4: Operator Leaderboard */}
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-amber-400" />
+                Operator Performance (Cumulative)
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">Real-time ledger</span>
+            </div>
 
-              return (
-                <button
-                  key={day.date}
-                  type="button"
-                  onClick={() => handleDrilldown(day.date)}
-                  className="group flex flex-col items-center gap-2 focus:outline-none"
-                >
-                  <span className="text-[10px] font-mono text-slate-400 group-hover:text-emerald-400 transition-colors">
-                    {formatINR(day.total, false).replace('₹ ', '')}
-                  </span>
-
-                  <div className="w-full h-36 bg-slate-950 rounded-xl p-1 flex items-end border border-slate-800 group-hover:border-emerald-500 transition-colors">
-                    <div
-                      style={{ height: `${heightPercent}%` }}
-                      className={`w-full rounded-lg transition-all duration-300 ${
-                        isToday
-                          ? 'bg-gradient-to-t from-emerald-600 via-emerald-400 to-teal-300 shadow-glow-brand'
-                          : 'bg-gradient-to-t from-slate-700 to-slate-500 group-hover:from-emerald-700 group-hover:to-emerald-500'
-                      }`}
-                    ></div>
+            <div className="space-y-1.5 py-1">
+              {Object.entries(metrics.operatorTotals).length === 0 ? (
+                <div className="text-center py-4 text-xs text-slate-500">No operator entries yet</div>
+              ) : (
+                Object.entries(metrics.operatorTotals).map(([name, sum]) => (
+                  <div
+                    key={name}
+                    className="flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800/80 text-xs"
+                  >
+                    <span className="font-semibold text-slate-300">{name}</span>
+                    <span className="font-mono font-bold text-emerald-400">{formatINR(sum)}</span>
                   </div>
-
-                  <span className={`text-[11px] font-bold ${isToday ? 'text-emerald-400' : 'text-slate-400'}`}>
-                    {day.date.split('-')[2]} {formatAppDate(day.date).split('-')[1]}
-                  </span>
-                </button>
-              );
-            })}
+                ))
+              )}
+            </div>
           </div>
+
         </div>
+
       </main>
+
+      {/* 3. STATUS BAR (28PX) */}
+      <footer className="h-7 bg-slate-950 border-t border-slate-800/80 px-3 sm:px-4 flex items-center justify-between text-[11px] text-slate-400 shrink-0 z-20">
+        <span>Executive Intelligence Engine Active</span>
+        <span className="font-mono text-slate-400">7-Day Rolling Volume: {formatINR(metrics.thisWeekTotal)}</span>
+      </footer>
+
     </div>
   );
 };
+
+export default AdminDashboardPage;
