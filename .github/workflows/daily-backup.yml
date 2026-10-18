@@ -1,0 +1,60 @@
+name: Production Daily Database Backup
+
+on:
+  schedule:
+    # 19:30 UTC = 01:00 AM Indian Standard Time (IST)
+    - cron: '30 19 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    name: Backup Supabase Production Database
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Backup Timestamp
+        id: vars
+        run: |
+          echo "TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_OUTPUT
+          echo "DATE_STAMP=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Backup Directory
+        run: mkdir -p ./backups/prod_${{ steps.vars.outputs.TIMESTAMP }}
+
+      - name: Export Tables as CSV via Supabase REST API
+        env:
+          SUPABASE_URL: https://tgfhgyqlbmpjmlnijggf.supabase.co
+          ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnZmhneXFsYm1wam1sbmlqZ2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzMDQxMzcsImV4cCI6MjEwNzg4MDEzN30.272zMIr9IxrTgBPeq3-zNe-RlAUJHQI_skyrKAZ6d38' }}
+        run: |
+          # Fetch Profiles
+          curl -s "${SUPABASE_URL}/rest/v1/profiles?select=*" \
+            -H "apikey: ${ANON_KEY}" \
+            -H "Authorization: Bearer ${ANON_KEY}" \
+            -H "Accept: text/csv" > ./backups/prod_${{ steps.vars.outputs.TIMESTAMP }}/profiles.csv
+
+          # Fetch Daily Sheets
+          curl -s "${SUPABASE_URL}/rest/v1/daily_sheets?select=*" \
+            -H "apikey: ${ANON_KEY}" \
+            -H "Authorization: Bearer ${ANON_KEY}" \
+            -H "Accept: text/csv" > ./backups/prod_${{ steps.vars.outputs.TIMESTAMP }}/daily_sheets.csv
+
+          # Fetch Entries
+          curl -s "${SUPABASE_URL}/rest/v1/entries?select=*" \
+            -H "apikey: ${ANON_KEY}" \
+            -H "Authorization: Bearer ${ANON_KEY}" \
+            -H "Accept: text/csv" > ./backups/prod_${{ steps.vars.outputs.TIMESTAMP }}/entries.csv
+
+      - name: Compress Backup Archive
+        run: |
+          cd ./backups
+          tar -czf backup_daily_collection_prod_${{ steps.vars.outputs.TIMESTAMP }}.tar.gz prod_${{ steps.vars.outputs.TIMESTAMP }}
+
+      - name: Upload Backup to GitHub Actions Artifacts (90-day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-prod-${{ steps.vars.outputs.DATE_STAMP }}
+          path: ./backups/backup_daily_collection_prod_${{ steps.vars.outputs.TIMESTAMP }}.tar.gz
+          retention-days: 90

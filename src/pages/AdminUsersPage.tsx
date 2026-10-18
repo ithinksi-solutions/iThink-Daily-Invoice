@@ -58,7 +58,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigateTab })
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col pb-24">
       <Header currentTab="users" onTabChange={onNavigateTab} />
 
-      <main className="max-w-4xl mx-auto w-full px-4 sm:px-6 pt-5 space-y-5">
+      <main className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-5 space-y-5">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">

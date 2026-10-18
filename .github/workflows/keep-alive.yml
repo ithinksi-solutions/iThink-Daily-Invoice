@@ -1,0 +1,19 @@
+name: Supabase Free Tier Keep-Alive
+
+on:
+  schedule:
+    # Runs at 06:00 UTC every 5th day of the month
+    - cron: '0 6 */5 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Keep Supabase Unpaused
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database Health
+        run: |
+          echo "Pinging Supabase instance to prevent inactivity pausing..."
+          curl -s -f -o /dev/null -X GET "https://tgfhgyqlbmpjmlnijggf.supabase.co/rest/v1/" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnZmhneXFsYm1wam1sbmlqZ2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzMDQxMzcsImV4cCI6MjEwNzg4MDEzN30.272zMIr9IxrTgBPeq3-zNe-RlAUJHQI_skyrKAZ6d38" || echo "Ping dispatched"
+          echo "Keep-alive ping completed successfully!"

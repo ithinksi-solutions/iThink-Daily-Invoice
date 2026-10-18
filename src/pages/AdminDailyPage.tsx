@@ -296,7 +296,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col pb-32">
       <Header currentTab="daily" onTabChange={onNavigateTab} />
 
-      <main className="max-w-6xl mx-auto w-full px-4 sm:px-6 pt-4 space-y-4">
+      <main className="max-w-7xl 2xl:max-w-[1500px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-5 space-y-5">
         
         {/* Date Navigator Bar */}
         <div className="rounded-2xl bg-slate-900 border border-slate-800 p-3.5 shadow-glass flex flex-wrap items-center justify-between gap-3">
@@ -572,7 +572,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
 
       {/* FIXED BOTTOM GRAND TOTAL BAR */}
       <div className="fixed bottom-0 inset-x-0 z-30 p-3 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 shadow-2xl">
-        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3 px-2">
+        <div className="max-w-7xl 2xl:max-w-[1500px] mx-auto flex flex-wrap items-center justify-between gap-3 px-4 lg:px-8">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Grand Total ({filteredEntries.length} {t('entriesCount')}):

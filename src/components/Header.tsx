@@ -28,7 +28,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab = 'daily', onTabChang
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/80 transition-all duration-200">
-      <div className="max-w-6xl mx-auto px-4 py-3 sm:px-6">
+      <div className="max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex items-center justify-between gap-3">
           
           {/* Logo & Brand */}

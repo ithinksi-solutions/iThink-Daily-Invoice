@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: daily-collection-tracker
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_SUPABASE_URL
+        value: https://tgfhgyqlbmpjmlnijggf.supabase.co
+      - key: VITE_SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnZmhneXFsYm1wam1sbmlqZ2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzMDQxMzcsImV4cCI6MjEwNzg4MDEzN30.272zMIr9IxrTgBPeq3-zNe-RlAUJHQI_skyrKAZ6d38
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN

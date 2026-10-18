@@ -206,7 +206,7 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col pb-24">
       <Header currentTab="dashboard" onTabChange={onNavigateTab} />
 
-      <main className="max-w-6xl mx-auto w-full px-4 sm:px-6 pt-5 space-y-6">
+      <main className="max-w-7xl 2xl:max-w-[1500px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-5 space-y-6">
         
         {/* Dashboard Title */}
         <div className="flex items-center justify-between">
