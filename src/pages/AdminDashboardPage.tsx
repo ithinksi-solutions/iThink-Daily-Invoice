@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../lib/i18n';
@@ -58,8 +58,7 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
 
   const todayIST = getCurrentISTDateString();
 
-  useEffect(() => {
-    async function loadAnalytics() {
+  const loadAnalytics = useCallback(async () => {
       setLoading(true);
       try {
         const { data: sheets } = await supabase
@@ -185,9 +184,11 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
       } finally {
         setLoading(false);
       }
-    }
-    loadAnalytics();
   }, [todayIST]);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
 
   const handleDrilldown = (dateStr: string) => {
     onSelectDate(dateStr);
@@ -201,16 +202,16 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
       <header className="h-12 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-20">
         
         {/* Brand & Tab Navigation */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xs">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xs shrink-0">
             ₹
           </div>
-          <span className="text-xs font-black tracking-tight text-white uppercase hidden xl:inline">
-            iThink AI
+          <span className="text-sm font-extrabold tracking-tight text-white uppercase whitespace-nowrap truncate">
+            Daily Invoice
           </span>
 
-          {/* Segmented Tab Switcher */}
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+          {/* Segmented Tab Switcher (Desktop) */}
+          <div className="hidden md:flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
             <button
               type="button"
               onClick={() => onNavigateTab('daily')}
@@ -239,13 +240,23 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
         </div>
 
         {/* Center: Live Date Tag */}
-        <div className="flex items-center gap-2 font-mono text-xs font-bold bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
+        <div className="hidden lg:flex items-center gap-2 font-mono text-xs font-bold bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
           <Activity className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Intelligence Engine • {formatAppDate(todayIST)}</span>
+          <span>Analytics Engine • {formatAppDate(todayIST)}</span>
         </div>
 
         {/* Right Controls */}
         <div className="flex items-center gap-2">
+          {/* Refresh */}
+          <button
+            type="button"
+            onClick={loadAnalytics}
+            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800"
+            title="Refresh Data"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+
           {/* Language Switcher */}
           <div className="bg-slate-900 border border-slate-800 rounded-lg p-0.5 flex items-center">
             <button
@@ -513,11 +524,39 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
 
       </main>
 
-      {/* 3. STATUS BAR (28PX) */}
-      <footer className="h-7 bg-slate-950 border-t border-slate-800/80 px-3 sm:px-4 flex items-center justify-between text-[11px] text-slate-400 shrink-0 z-20">
-        <span>Executive Intelligence Engine Active</span>
+      {/* 3. STATUS BAR (28PX - Desktop only) */}
+      <footer className="hidden md:flex h-7 bg-slate-950 border-t border-slate-800/80 px-3 sm:px-4 items-center justify-between text-[11px] text-slate-400 shrink-0 z-20">
+        <span>Analytics Engine Active</span>
         <span className="font-mono text-slate-400">7-Day Rolling Volume: {formatINR(metrics.thisWeekTotal)}</span>
       </footer>
+
+      {/* 4. MOBILE BOTTOM NAVIGATION (52PX - Mobile only) */}
+      <nav className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md px-3 py-1.5 flex items-center justify-around shrink-0 z-30">
+        <button
+          type="button"
+          onClick={() => onNavigateTab('daily')}
+          className="flex-1 py-1.5 flex flex-col items-center gap-0.5 text-[11px] font-bold rounded-xl text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+        >
+          <Calendar className="w-4 h-4 text-slate-400" />
+          <span>Daily</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigateTab('dashboard')}
+          className="flex-1 py-1.5 flex flex-col items-center gap-0.5 text-[11px] font-bold rounded-xl text-purple-400 bg-purple-500/15 border border-purple-500/30 transition-all shadow-sm cursor-pointer"
+        >
+          <BarChart3 className="w-4 h-4 text-purple-400" />
+          <span>Analytics</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigateTab('users')}
+          className="flex-1 py-1.5 flex flex-col items-center gap-0.5 text-[11px] font-bold rounded-xl text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+        >
+          <Users className="w-4 h-4 text-slate-400" />
+          <span>Operators</span>
+        </button>
+      </nav>
 
     </div>
   );

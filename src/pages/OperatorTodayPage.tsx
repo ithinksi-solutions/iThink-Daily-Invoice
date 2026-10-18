@@ -17,8 +17,9 @@ import {
   X,
   Upload,
   Download,
+  Wallet,
   CheckCircle2,
-  AlertCircle
+  Sparkles
 } from 'lucide-react';
 
 export const OperatorTodayPage: React.FC = () => {
@@ -136,7 +137,9 @@ export const OperatorTodayPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen max-h-screen overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between">
+    <div className="h-screen w-screen max-h-screen overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between selection:bg-emerald-500/30 selection:text-emerald-300">
+      
+      {/* 1. STYLISH TOP HEADER (1 LINE: DAILY INVOICE) */}
       <Header />
 
       {/* Success Confetti Toast */}
@@ -147,22 +150,42 @@ export const OperatorTodayPage: React.FC = () => {
         onClose={() => setSavedToastInfo((prev) => ({ ...prev, show: false }))}
       />
 
-      {/* COMPACT POWER BI SCORECARD & CONTROLS STRIP */}
-      <div className="bg-slate-900 border-b border-slate-800 px-3 sm:px-4 py-2 shrink-0 z-10">
-        <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+      {/* 2. REVOLUT-STYLE MOBILE HERO SUMMARY CARD (COMPACT & SLEEK) */}
+      <div className="px-3 sm:px-4 pt-2.5 pb-2 shrink-0 z-10 max-w-xl mx-auto w-full">
+        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-slate-950 border border-slate-800 shadow-xl relative overflow-hidden">
           
-          {/* Today Date & Business Pills */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-white font-mono font-bold">
+          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+            <div className="flex items-center gap-1.5 font-bold">
               <Calendar className="w-3.5 h-3.5 text-emerald-400" />
               <span>{formatAppDate(todayIST)}</span>
             </div>
+            
+            <button
+              type="button"
+              onClick={loadTodayData}
+              className="p-1 rounded-md text-slate-400 hover:text-white"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
 
+          {/* Big Hero Balance Display */}
+          <div className="flex items-baseline justify-between mt-1">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Today's Collections
+              </div>
+              <div className="font-mono text-2xl sm:text-3xl font-black text-white tracking-tight mt-0.5">
+                {formatINR(grandTotal)}
+              </div>
+            </div>
+
+            {/* Business Segment Tabs */}
             <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 text-[11px] font-bold">
               <button
                 type="button"
                 onClick={() => setSelectedBusiness('ALL')}
-                className={`px-2 py-0.5 rounded ${
+                className={`px-2 py-0.5 rounded transition-all ${
                   selectedBusiness === 'ALL'
                     ? 'bg-emerald-500 text-slate-950 font-black'
                     : 'text-slate-400'
@@ -173,7 +196,7 @@ export const OperatorTodayPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedBusiness('STAR')}
-                className={`px-2 py-0.5 rounded ${
+                className={`px-2 py-0.5 rounded transition-all ${
                   selectedBusiness === 'STAR'
                     ? 'bg-emerald-500 text-slate-950 font-black'
                     : 'text-slate-400'
@@ -184,7 +207,7 @@ export const OperatorTodayPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedBusiness('ARBO PLAST')}
-                className={`px-2 py-0.5 rounded ${
+                className={`px-2 py-0.5 rounded transition-all ${
                   selectedBusiness === 'ARBO PLAST'
                     ? 'bg-emerald-500 text-slate-950 font-black'
                     : 'text-slate-400'
@@ -195,57 +218,53 @@ export const OperatorTodayPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Compact KPI Numbers */}
-          <div className="flex items-center gap-3 font-mono font-bold">
-            <span className="text-emerald-400">Cash: {formatINR(cashTotal)}</span>
-            <span className="text-slate-700">|</span>
-            <span className="text-purple-400">PhonePe: {formatINR(phonePeTotal)}</span>
-            <span className="text-slate-700">|</span>
-            <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-              Total: {formatINR(grandTotal)}
+          {/* Micro KPI Split Strip */}
+          <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono font-bold">
+            <span className="text-emerald-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              Cash: {formatINR(cashTotal)}
             </span>
-            <button
-              type="button"
-              onClick={loadTodayData}
-              className="p-1 text-slate-400 hover:text-white"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
+            <span className="text-purple-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+              PhonePe: {formatINR(phonePeTotal)}
+            </span>
+            <span className="text-slate-400 text-[11px]">
+              {filteredEntries.length} {filteredEntries.length === 1 ? 'Slip' : 'Slips'}
+            </span>
           </div>
 
         </div>
       </div>
 
-      {/* MAIN DATA LIST (INTERNAL SCROLL, NO WINDOW OVERFLOW) */}
-      <main className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 max-w-4xl mx-auto w-full space-y-2.5">
+      {/* 3. MAIN MOBILE COLLECTION CARDS (SMOOTH INTERNAL SCROLL) */}
+      <main className="flex-1 overflow-y-auto px-3 sm:px-4 py-1.5 max-w-xl mx-auto w-full space-y-2">
         {loading ? (
           <div className="h-full flex items-center justify-center text-slate-500 text-xs animate-pulse">
             Loading today's collections...
           </div>
         ) : filteredEntries.length === 0 ? (
-          <div className="h-64 flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-2xl bg-slate-900/30 text-center p-6">
+          <div className="h-56 flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-2xl bg-slate-900/30 text-center p-6">
             <p className="text-xs text-slate-400">{t('noEntriesToday')}</p>
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
-              className="mt-3 px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 shadow-glow-brand"
+              className="mt-3 px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 shadow-glow-brand cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Add First Collection
             </button>
           </div>
         ) : (
           filteredEntries.map((entry) => {
-            const isSplit = entry.cash_amount > 0 && entry.phonepe_amount > 0;
             return (
               <div
                 key={entry.id}
-                className="rounded-2xl bg-slate-900/90 border border-slate-800/80 p-3.5 shadow-glass flex flex-col gap-2 hover:border-slate-700 transition-all"
+                className="rounded-2xl bg-slate-900/90 border border-slate-800/90 p-3.5 shadow-md flex flex-col gap-2 hover:border-slate-700 transition-all"
               >
-                {/* Header Row */}
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
+                {/* Header Row: Business, Time & Total Amount */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
                     <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${
                         entry.business_name === 'STAR'
                           ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                           : 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
@@ -258,19 +277,19 @@ export const OperatorTodayPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <span className="font-mono text-base font-black text-white">
+                  <span className="font-mono text-base sm:text-lg font-black text-white">
                     {formatINR(entry.total_collected)}
                   </span>
                 </div>
 
-                {/* Middle Row */}
+                {/* Dealer Name & Balance */}
                 <div className="flex items-baseline justify-between gap-2">
                   <h4 className="text-sm font-bold text-white tracking-tight">
                     {entry.dealer_name}
                   </h4>
                   {entry.balance_owed !== null && (
                     <span className="text-[11px] font-mono text-amber-400">
-                      Bal Owed: {formatINR(entry.balance_owed)}
+                      Bal: {formatINR(entry.balance_owed)}
                     </span>
                   )}
                 </div>
@@ -281,9 +300,9 @@ export const OperatorTodayPage: React.FC = () => {
                   </p>
                 )}
 
-                {/* Footer Details & Direct Slip Upload/View */}
+                {/* Footer Split & Slip Action */}
                 <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-3 text-[11px] font-mono">
+                  <div className="flex items-center gap-2.5 text-[11px] font-mono">
                     {entry.cash_amount > 0 && (
                       <span className="text-emerald-400">Cash: {formatINR(entry.cash_amount)}</span>
                     )}
@@ -292,13 +311,13 @@ export const OperatorTodayPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Slip Action Button */}
+                  {/* Slip Action */}
                   <div>
                     {entry.image_url ? (
                       <button
                         type="button"
                         onClick={() => setPreviewImageUrl(entry.image_url)}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[11px] font-bold"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[11px] font-bold cursor-pointer"
                       >
                         <ImageIcon className="w-3.5 h-3.5" />
                         <span>View Slip</span>
@@ -307,7 +326,7 @@ export const OperatorTodayPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setAttachingEntry(entry)}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold cursor-pointer border border-slate-700"
                       >
                         <Camera className="w-3.5 h-3.5 text-teal-400" />
                         <span>+ Attach Slip</span>
@@ -322,17 +341,17 @@ export const OperatorTodayPage: React.FC = () => {
         )}
       </main>
 
-      {/* FIXED BOTTOM ACTION BAR - Big Touch Target (56px) for One-Handed Operation */}
+      {/* 4. FLOATING BOTTOM CTA (TOUCH-OPTIMIZED 52PX) */}
       <div className="p-3 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 shrink-0 z-20">
         <div className="max-w-md mx-auto">
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
             disabled={!sheetId}
-            className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 text-slate-950 text-sm font-black shadow-glow-brand hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer"
+            className="w-full h-12 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 text-slate-950 text-sm font-black shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            <span>{t('addNewEntry')}</span>
+            <span>Add Collection Entry</span>
           </button>
         </div>
       </div>

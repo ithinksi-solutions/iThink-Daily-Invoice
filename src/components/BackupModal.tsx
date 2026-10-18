@@ -132,7 +132,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
 
       const backupData = {
         metadata: {
-          system: 'iThink AI Daily Collection Tracker',
+          system: 'Daily Invoice',
           generated_at: new Date().toISOString(),
           version: '2.4.0',
         },

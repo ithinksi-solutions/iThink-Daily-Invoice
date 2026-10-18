@@ -64,12 +64,9 @@ export const LoginPage: React.FC = () => {
               ₹
             </div>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-sm font-black tracking-tight text-white uppercase">
-              iThink AI
-            </span>
-            <span className="hidden sm:inline text-xs text-slate-400 font-medium">
-              | Daily Collection Terminal
+          <div className="flex items-center gap-2">
+            <span className="text-sm sm:text-base font-extrabold tracking-tight text-white whitespace-nowrap">
+              Daily Invoice
             </span>
           </div>
         </div>
@@ -117,7 +114,7 @@ export const LoginPage: React.FC = () => {
             {/* Main Headline */}
             <div>
               <h1 className="text-2xl xl:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                Daily Collection & Slip Reconciliation Desk
+                Daily Invoice & Slip Reconciliation Desk
               </h1>
               <p className="mt-2 text-xs xl:text-sm text-slate-400 leading-relaxed max-w-xl">
                 Replaces handwritten collection sheets with fast daily receipts, split payment tracking, and automated reconciliation.
@@ -178,8 +175,8 @@ export const LoginPage: React.FC = () => {
                 <div className="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-xs">
                   ₹
                 </div>
-                <span className="text-xs font-bold text-white uppercase tracking-wider">
-                  Daily Collection Tracker
+                <span className="text-xs font-bold text-white uppercase tracking-wider whitespace-nowrap">
+                  Daily Invoice
                 </span>
               </div>
 

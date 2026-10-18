@@ -3,7 +3,7 @@ import { LanguagePreference } from '../types/database';
 
 export const translations = {
   en: {
-    appTitle: 'Daily Collection Tracker',
+    appTitle: 'Daily Invoice',
     brandTag: 'Fiscal Desk',
     loginTitle: 'Sign In to Tracker',
     loginSubtitle: 'Enter your credentials to manage daily collections',
@@ -75,7 +75,7 @@ export const translations = {
     entriesCount: 'Entries',
   },
   te: {
-    appTitle: 'రోజువారీ వసూళ్ల ట్రాకర్',
+    appTitle: 'Daily Invoice',
     brandTag: 'వసూళ్ల ఖాతా',
     loginTitle: 'లాగిన్ అవ్వండి',
     loginSubtitle: 'రోజువారీ వసూళ్లను నమోదు చేయడానికి లాగిన్ చేయండి',

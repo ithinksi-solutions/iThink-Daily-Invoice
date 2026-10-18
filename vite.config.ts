@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Daily Collection Tracker',
-        short_name: 'Tracker',
-        description: 'Fortune-5 Caliber Daily Cash and PhonePe Collection Tracker',
+        name: 'Daily Invoice',
+        short_name: 'Daily Invoice',
+        description: 'Daily Invoice and Collection Terminal',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',

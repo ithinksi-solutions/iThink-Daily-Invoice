@@ -289,16 +289,16 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
       <header className="h-12 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-20">
         
         {/* Brand & Tab Navigation */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xs">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xs shrink-0">
             ₹
           </div>
-          <span className="text-xs font-black tracking-tight text-white uppercase hidden xl:inline">
-            iThink AI
+          <span className="text-sm font-extrabold tracking-tight text-white uppercase whitespace-nowrap truncate">
+            Daily Invoice
           </span>
 
-          {/* Power BI Segmented Page Switcher */}
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+          {/* Power BI Segmented Page Switcher (Desktop) */}
+          <div className="hidden md:flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
             <button
               type="button"
               onClick={() => onNavigateTab('daily')}
@@ -326,8 +326,8 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
           </div>
         </div>
 
-        {/* Center: Power BI Date Navigator & Business Pills */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Center: Power BI Date Navigator & Business Pills (Desktop) */}
+        <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
           {/* Date Navigator */}
           <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
             <button
@@ -362,7 +362,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
           </div>
 
           {/* Business Filter Pills */}
-          <div className="hidden md:flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[11px] font-bold">
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[11px] font-bold">
             <button
               type="button"
               onClick={() => setSelectedBusiness('ALL')}
@@ -406,7 +406,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
           <button
             type="button"
             onClick={() => setIsGalleryOpen(true)}
-            className="px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 hover:bg-teal-500/25 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+            className="px-2 sm:px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 hover:bg-teal-500/25 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
             title="View All Uploaded Slips for this Date"
           >
             <Camera className="w-3.5 h-3.5 text-teal-400" />
@@ -420,29 +420,29 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
           <button
             type="button"
             onClick={() => setIsBackupOpen(true)}
-            className="px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+            className="px-2 sm:px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
             title="Download Backup & Cloud Sync"
           >
             <Database className="w-3.5 h-3.5 text-indigo-400" />
             <span className="hidden sm:inline">Backup</span>
           </button>
 
-          {/* Export Excel */}
+          {/* Export Excel (Desktop) */}
           <button
             type="button"
             onClick={handleExportExcel}
-            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-600 hover:text-white border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 transition-all"
+            className="hidden lg:flex px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-600 hover:text-white border border-slate-700 text-slate-200 text-xs font-bold items-center gap-1 transition-all"
             title="Download Excel for Selected Date"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden lg:inline">Excel</span>
+            <span>Excel</span>
           </button>
 
-          {/* Refresh */}
+          {/* Refresh (Desktop) */}
           <button
             type="button"
             onClick={loadDailyEntries}
-            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800"
+            className="hidden md:flex p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800"
             title="Refresh Data"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -483,8 +483,137 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
 
       </header>
 
-      {/* 2. POWER BI COMPACT KPI STRIP & INLINE FILTERS (HEIGHT 42PX) */}
-      <div className="h-10 bg-slate-900/90 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between gap-3 shrink-0 text-xs z-10">
+      {/* MOBILE CONTROLS & KPI BAR (md:hidden) */}
+      <div className="md:hidden bg-slate-900/95 border-b border-slate-800 px-3 py-2 space-y-2 shrink-0 z-10">
+        
+        {/* Row 1: Date Navigator + Refresh */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 flex-1">
+            <button
+              type="button"
+              onClick={handlePrevDay}
+              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+              title="Previous Day"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+              className="bg-transparent text-white font-mono font-bold text-xs px-1.5 outline-none cursor-pointer flex-1 text-center"
+            />
+            <button
+              type="button"
+              onClick={handleNextDay}
+              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+              title="Next Day"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleToday}
+              className="px-2 py-0.5 text-[11px] font-bold rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+            >
+              Today
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={loadDailyEntries}
+            className="p-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800"
+            title="Refresh Data"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+
+        {/* Row 2: Business Segment Switcher */}
+        <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 text-[11px] font-bold">
+          <button
+            type="button"
+            onClick={() => setSelectedBusiness('ALL')}
+            className={`flex-1 py-1 rounded transition-all text-center ${
+              selectedBusiness === 'ALL'
+                ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
+                : 'text-slate-400'
+            }`}
+          >
+            All ({formatINR(totals.ALL)})
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedBusiness('STAR')}
+            className={`flex-1 py-1 rounded transition-all text-center ${
+              selectedBusiness === 'STAR'
+                ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
+                : 'text-slate-400'
+            }`}
+          >
+            STAR ({formatINR(totals.STAR)})
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedBusiness('ARBO PLAST')}
+            className={`flex-1 py-1 rounded transition-all text-center ${
+              selectedBusiness === 'ARBO PLAST'
+                ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
+                : 'text-slate-400'
+            }`}
+          >
+            ARBO ({formatINR(totals['ARBO PLAST'])})
+          </button>
+        </div>
+
+        {/* Row 3: Micro KPI Scorecards Strip */}
+        <div className="grid grid-cols-3 gap-1.5 text-center font-mono">
+          <div className="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+            <span className="block text-[9px] font-sans font-bold uppercase text-slate-400">Cash</span>
+            <span className="text-xs font-black text-emerald-400">{formatINR(visibleCash)}</span>
+          </div>
+          <div className="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+            <span className="block text-[9px] font-sans font-bold uppercase text-slate-400">PhonePe</span>
+            <span className="text-xs font-black text-purple-400">{formatINR(visiblePhonePe)}</span>
+          </div>
+          <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25">
+            <span className="block text-[9px] font-sans font-bold uppercase text-emerald-300">Grand Total</span>
+            <span className="text-xs font-black text-emerald-400">{formatINR(visibleGrand)}</span>
+          </div>
+        </div>
+
+        {/* Row 4: Quick Search & Operator Filter */}
+        <div className="flex items-center gap-1.5">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Search dealer..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-2 py-1 pl-6 bg-slate-950 border border-slate-800 rounded-md text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+            />
+            <Search className="w-3 h-3 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
+          </div>
+
+          <select
+            value={filterOperator}
+            onChange={(e) => setFilterOperator(e.target.value)}
+            className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-md text-[11px] text-white focus:outline-none focus:border-emerald-500"
+          >
+            <option value="ALL">All Operators</option>
+            {operators.map((op) => (
+              <option key={op.id} value={op.id}>
+                {op.full_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+      </div>
+
+      {/* 2. POWER BI COMPACT KPI STRIP & INLINE FILTERS (HEIGHT 42PX - Desktop only) */}
+      <div className="hidden md:flex h-10 bg-slate-900/90 border-b border-slate-800 px-3 sm:px-4 items-center justify-between gap-3 shrink-0 text-xs z-10">
         
         {/* KPI Scorecards Strip */}
         <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto whitespace-nowrap">
@@ -579,7 +708,9 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
             </p>
           </div>
         ) : (
-          <div className="border border-slate-800 rounded-xl overflow-hidden shadow-2xl bg-slate-900/80">
+          <>
+            {/* Desktop Table View (Power BI Data Grid) */}
+            <div className="hidden md:block border border-slate-800 rounded-xl overflow-hidden shadow-2xl bg-slate-900/80">
             <table className="w-full text-left border-collapse text-xs">
               
               {/* Sticky Table Header */}
@@ -713,13 +844,96 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+
+            {/* Mobile Card List View for Admin (Touch-Optimized) */}
+            <div className="md:hidden space-y-2 pb-6">
+              {filteredEntries.map((e) => {
+                const op = operators.find((o) => o.id === e.collector_id);
+                return (
+                  <div
+                    key={e.id}
+                    className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md flex flex-col gap-2"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                            e.business_name === 'STAR'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
+                          }`}
+                        >
+                          {e.business_name}
+                        </span>
+                        <span className="text-slate-400 font-semibold">{op?.full_name || 'Operator'}</span>
+                        <span className="text-slate-500 font-mono text-[11px]">{formatAppTime(e.created_at)}</span>
+                      </div>
+                      <span className="font-mono text-base font-black text-white">
+                        {formatINR(e.total_collected)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline justify-between gap-2">
+                      <h4 className="text-sm font-bold text-white tracking-tight">{e.dealer_name}</h4>
+                      {e.balance_owed !== null && (
+                        <span className="text-[11px] font-mono text-amber-400">
+                          Bal: {formatINR(e.balance_owed)}
+                        </span>
+                      )}
+                    </div>
+
+                    {e.note && <p className="text-[11px] text-slate-400 italic">"{e.note}"</p>}
+
+                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-[11px] font-mono">
+                        {e.cash_amount > 0 && <span className="text-emerald-400">Cash: {formatINR(e.cash_amount)}</span>}
+                        {e.phonepe_amount > 0 && <span className="text-purple-400">PhonePe: {formatINR(e.phonepe_amount)}</span>}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {e.image_url && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewImageUrl(e.image_url)}
+                            className="p-1 px-2 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[11px] font-bold flex items-center gap-1"
+                          >
+                            <ImageIcon className="w-3 h-3" />
+                            <span>Slip</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(e)}
+                          className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-emerald-400"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeletingEntry(e);
+                            setDeleteReason('');
+                          }}
+                          className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-rose-400"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
 
       </main>
 
-      {/* 4. POWER BI COMPACT STATUS BAR (HEIGHT 28PX) */}
-      <footer className="h-7 bg-slate-950 border-t border-slate-800/80 px-3 sm:px-4 flex items-center justify-between text-[11px] text-slate-400 shrink-0 z-20">
+      {/* 4. POWER BI COMPACT STATUS BAR (HEIGHT 28PX - Desktop only) */}
+      <footer className="hidden md:flex h-7 bg-slate-950 border-t border-slate-800/80 px-3 sm:px-4 items-center justify-between text-[11px] text-slate-400 shrink-0 z-20">
         <div className="flex items-center gap-2">
           <span>Date: <strong className="text-white font-mono">{formatAppDate(selectedDate)}</strong></span>
           <span className="text-slate-700">•</span>
@@ -731,6 +945,34 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
           <span>Total: <strong className="text-white">{formatINR(visibleGrand)}</strong></span>
         </div>
       </footer>
+
+      {/* 5. MOBILE BOTTOM NAVIGATION (52PX - Mobile only) */}
+      <nav className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md px-3 py-1.5 flex items-center justify-around shrink-0 z-30">
+        <button
+          type="button"
+          onClick={() => onNavigateTab('daily')}
+          className="flex-1 py-1.5 flex flex-col items-center gap-0.5 text-[11px] font-bold rounded-xl text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 transition-all shadow-sm cursor-pointer"
+        >
+          <Calendar className="w-4 h-4 text-emerald-400" />
+          <span>Daily</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigateTab('dashboard')}
+          className="flex-1 py-1.5 flex flex-col items-center gap-0.5 text-[11px] font-bold rounded-xl text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+        >
+          <BarChart3 className="w-4 h-4 text-slate-400" />
+          <span>Analytics</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigateTab('users')}
+          className="flex-1 py-1.5 flex flex-col items-center gap-0.5 text-[11px] font-bold rounded-xl text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+        >
+          <Users className="w-4 h-4 text-slate-400" />
+          <span>Operators</span>
+        </button>
+      </nav>
 
       {/* BACKUP & CLOUD SYNC HUB MODAL */}
       <BackupModal
