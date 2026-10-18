@@ -17,7 +17,7 @@ export const App: React.FC = () => {
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
         <span className="text-xs text-slate-400 font-mono tracking-wider">
-          Initializing Fortune-5 Collection Tracker...
+          Initializing Collection Tracker...
         </span>
       </div>
     );
