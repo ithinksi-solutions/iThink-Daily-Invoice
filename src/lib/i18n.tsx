@@ -4,7 +4,7 @@ import { LanguagePreference } from '../types/database';
 export const translations = {
   en: {
     appTitle: 'Daily Collection Tracker',
-    brandTag: 'Fortune-5 Finance',
+    brandTag: 'Fiscal Desk',
     loginTitle: 'Sign In to Tracker',
     loginSubtitle: 'Enter your credentials to manage daily collections',
     email: 'Email Address',

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Check, Loader2 } from 'lucide-react';
+import { Camera, Upload, X, Check, Loader2, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,7 +17,9 @@ export const ImageCapture: React.FC<ImageCaptureProps> = ({
   const { user } = useAuth();
   const [uploading, setUploading] = useState<boolean>(false);
   const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // Client-side canvas compression function
   const compressImage = (file: File): Promise<Blob> => {
@@ -86,7 +88,7 @@ export const ImageCapture: React.FC<ImageCaptureProps> = ({
         return;
       }
 
-      // 3. Get URL
+      // 3. Get Public URL
       const { data: urlData } = supabase.storage
         .from('bill-slips')
         .getPublicUrl(data.path);
@@ -104,64 +106,85 @@ export const ImageCapture: React.FC<ImageCaptureProps> = ({
 
   const handleRemove = () => {
     setPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
     if (onRemoveImage) onRemoveImage();
   };
 
   return (
     <div className="w-full">
+      {/* Hidden inputs: Camera (environment capture) vs Gallery (file picker) */}
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="hidden"
         onChange={handleFileChange}
       />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
       {preview ? (
-        <div className="relative rounded-xl overflow-hidden border border-emerald-500/30 bg-slate-900 p-2 flex items-center justify-between">
+        <div className="relative rounded-2xl overflow-hidden border border-emerald-500/30 bg-slate-900/90 p-2.5 flex items-center justify-between">
           <div className="flex items-center gap-3 truncate">
             <img
               src={preview}
               alt="Slip Preview"
-              className="w-14 h-14 object-cover rounded-lg border border-slate-700"
+              className="w-14 h-14 object-cover rounded-xl border border-slate-700 shrink-0"
             />
             <div className="truncate">
-              <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" /> Slip Attached
+              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                <Check className="w-3.5 h-3.5" /> Slip Photo Attached
               </span>
-              <p className="text-[11px] text-slate-400 truncate">Ready with collection entry</p>
+              <p className="text-[11px] text-slate-400 truncate mt-0.5">Uploaded & linked to collection</p>
             </div>
           </div>
 
           <button
             type="button"
             onClick={handleRemove}
-            className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors shrink-0 ml-2"
+            title="Remove Slip"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2">
+          {/* Camera Button */}
           <button
             type="button"
             disabled={uploading}
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed border-slate-700 bg-slate-900/60 hover:bg-slate-800/80 hover:border-slate-600 text-slate-300 text-sm font-medium transition-all active:scale-[0.99]"
+            onClick={() => cameraInputRef.current?.click()}
+            className="p-3 rounded-xl border border-dashed border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500 text-slate-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
           >
             {uploading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                <span>Compressing & Uploading...</span>
-              </>
+              <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
             ) : (
-              <>
-                <Camera className="w-4 h-4 text-emerald-400" />
-                <span>Attach Slip Photo (Optional)</span>
-              </>
+              <Camera className="w-4 h-4 text-emerald-400" />
             )}
+            <span>Camera Photo</span>
+          </button>
+
+          {/* Gallery / File Upload Button */}
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => galleryInputRef.current?.click()}
+            className="p-3 rounded-xl border border-dashed border-slate-700 bg-slate-900 hover:bg-slate-800 hover:border-slate-600 text-slate-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+          >
+            {uploading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
+            ) : (
+              <Upload className="w-4 h-4 text-teal-400" />
+            )}
+            <span>Upload File</span>
           </button>
         </div>
       )}

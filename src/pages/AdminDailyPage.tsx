@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../lib/i18n';
 import { Entry, Profile, BusinessName } from '../types/database';
-import { Header } from '../components/Header';
-import { BusinessPills, BusinessFilter } from '../components/BusinessPills';
-import { SummaryCards } from '../components/SummaryCard';
-import { formatAppDate, formatAppTime, formatINR, getCurrentISTDateString, toISODateString } from '../lib/formatters';
+import { BackupModal } from '../components/BackupModal';
+import { DaySlipsGalleryModal } from '../components/DaySlipsGalleryModal';
+import { formatAppDate, formatAppTime, formatINR, getCurrentISTDateString } from '../lib/formatters';
 import * as XLSX from 'xlsx';
 import {
   Calendar,
@@ -16,12 +16,22 @@ import {
   Filter,
   Edit2,
   Trash2,
-  Image,
+  Image as ImageIcon,
   RefreshCw,
-  Plus,
-  AlertTriangle,
   FileSpreadsheet,
-  CheckCircle,
+  Database,
+  Camera,
+  AlertCircle,
+  X,
+  ExternalLink,
+  ZoomIn,
+  LogOut,
+  BarChart3,
+  Users,
+  Shield,
+  Clock,
+  Building2,
+  Check
 } from 'lucide-react';
 
 interface AdminDailyPageProps {
@@ -30,10 +40,11 @@ interface AdminDailyPageProps {
 }
 
 export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, initialDate }) => {
-  const { t } = useLanguage();
+  const { user, profile, signOut } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
 
   const [selectedDate, setSelectedDate] = useState<string>(initialDate || getCurrentISTDateString());
-  const [selectedBusiness, setSelectedBusiness] = useState<BusinessFilter>('ALL');
+  const [selectedBusiness, setSelectedBusiness] = useState<'ALL' | 'STAR' | 'ARBO PLAST'>('ALL');
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -46,6 +57,10 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
   const [loading, setLoading] = useState<boolean>(true);
 
   // Modals state
+  const [isBackupOpen, setIsBackupOpen] = useState<boolean>(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState<boolean>(false);
+
+  // Edit modal
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [editReason, setEditReason] = useState<string>('');
   const [editCash, setEditCash] = useState<string>('');
@@ -55,12 +70,14 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
   const [editNote, setEditNote] = useState<string>('');
   const [editBusiness, setEditBusiness] = useState<BusinessName>('STAR');
 
+  // Delete modal
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null);
   const [deleteReason, setDeleteReason] = useState<string>('');
 
+  // Single slip image lightbox preview
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
-  // Fetch operators list for filtering
+  // Fetch operators list
   useEffect(() => {
     async function fetchOperators() {
       const { data } = await supabase.from('profiles').select('*').order('full_name');
@@ -73,20 +90,12 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
   const loadDailyEntries = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Get sheets for the selected date
       const { data: sheets, error: sheetsErr } = await supabase
         .from('daily_sheets')
         .select('id, collector_id')
         .eq('sheet_date', selectedDate);
 
-      if (sheetsErr) {
-        console.error('Error fetching sheets:', sheetsErr);
-        setEntries([]);
-        setLoading(false);
-        return;
-      }
-
-      if (!sheets || sheets.length === 0) {
+      if (sheetsErr || !sheets || sheets.length === 0) {
         setEntries([]);
         setLoading(false);
         return;
@@ -94,7 +103,6 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
 
       const sheetIds = sheets.map((s) => s.id);
 
-      // 2. Fetch non-deleted entries under these sheets
       const { data: entriesData, error: entriesErr } = await supabase
         .from('entries')
         .select('*')
@@ -103,7 +111,6 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
         .order('created_at', { ascending: true });
 
       if (entriesErr) {
-        console.error('Error fetching entries:', entriesErr);
         setEntries([]);
       } else {
         setEntries((entriesData as Entry[]) || []);
@@ -119,45 +126,24 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
     loadDailyEntries();
   }, [loadDailyEntries]);
 
-  // Date Navigation Helpers
+  // Date Navigator Helpers
   const handlePrevDay = () => {
     const d = new Date(selectedDate);
     d.setDate(d.getDate() - 1);
-    setSelectedDate(toISODateString(d));
+    setSelectedDate(d.toISOString().split('T')[0]);
   };
 
   const handleNextDay = () => {
     const d = new Date(selectedDate);
     d.setDate(d.getDate() + 1);
-    setSelectedDate(toISODateString(d));
+    setSelectedDate(d.toISOString().split('T')[0]);
   };
 
   const handleToday = () => {
     setSelectedDate(getCurrentISTDateString());
   };
 
-  // Filter application
-  const filteredEntries = entries.filter((e) => {
-    // 1. Business
-    if (selectedBusiness !== 'ALL' && e.business_name !== selectedBusiness) return false;
-
-    // 2. Operator
-    if (filterOperator !== 'ALL' && e.collector_id !== filterOperator) return false;
-
-    // 3. Dealer Search
-    if (searchQuery.trim() && !e.dealer_name.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-
-    // 4. Payment Mode
-    if (filterMode === 'CASH_ONLY' && (e.cash_amount === 0 || e.phonepe_amount > 0)) return false;
-    if (filterMode === 'PHONEPE_ONLY' && (e.phonepe_amount === 0 || e.cash_amount > 0)) return false;
-    if (filterMode === 'SPLIT' && (e.cash_amount === 0 || e.phonepe_amount === 0)) return false;
-
-    return true;
-  });
-
-  // Calculate Subtotals & Grand Totals
+  // Business Totals
   const totals = {
     ALL: entries.reduce((acc, curr) => acc + (curr.total_collected || 0), 0),
     STAR: entries
@@ -168,19 +154,22 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
       .reduce((acc, curr) => acc + (curr.total_collected || 0), 0),
   };
 
+  // Filtered Entries
+  const filteredEntries = entries.filter((e) => {
+    if (selectedBusiness !== 'ALL' && e.business_name !== selectedBusiness) return false;
+    if (searchQuery.trim() && !e.dealer_name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filterOperator !== 'ALL' && e.collector_id !== filterOperator) return false;
+    if (filterMode === 'CASH_ONLY' && (e.cash_amount === 0 || e.phonepe_amount > 0)) return false;
+    if (filterMode === 'PHONEPE_ONLY' && (e.phonepe_amount === 0 || e.cash_amount > 0)) return false;
+    if (filterMode === 'SPLIT' && (e.cash_amount === 0 || e.phonepe_amount === 0)) return false;
+    return true;
+  });
+
   const visibleCash = filteredEntries.reduce((acc, curr) => acc + (curr.cash_amount || 0), 0);
   const visiblePhonePe = filteredEntries.reduce((acc, curr) => acc + (curr.phonepe_amount || 0), 0);
   const visibleGrand = visibleCash + visiblePhonePe;
 
-  // Group entries by Collector / Operator
-  const groupedByOperator: { [collectorId: string]: { operator: Profile | undefined; items: Entry[] } } = {};
-  filteredEntries.forEach((entry) => {
-    if (!groupedByOperator[entry.collector_id]) {
-      const op = operators.find((o) => o.id === entry.collector_id);
-      groupedByOperator[entry.collector_id] = { operator: op, items: [] };
-    }
-    groupedByOperator[entry.collector_id].items.push(entry);
-  });
+  const daySlipsCount = entries.filter((e) => Boolean(e.image_url)).length;
 
   // Edit Handlers
   const handleStartEdit = (entry: Entry) => {
@@ -219,7 +208,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
           balance_owed: nBalOwed,
           note: editNote.trim() || null,
           business_name: editBusiness,
-          note_audit: editReason.trim(), // intercepted by audit trigger
+          note_audit: editReason.trim(),
         })
         .eq('id', editingEntry.id);
 
@@ -234,7 +223,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
     }
   };
 
-  // Soft Delete Handlers
+  // Delete Handlers
   const handleConfirmDelete = async () => {
     if (!deletingEntry || !deleteReason.trim()) {
       alert('A reason for deletion is required for the audit log.');
@@ -262,7 +251,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
     }
   };
 
-  // Export to Excel (.xlsx)
+  // Export Daily Excel
   const handleExportExcel = () => {
     if (filteredEntries.length === 0) {
       alert('No entries to export for this date.');
@@ -283,6 +272,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
         'Total Collected (INR)': e.total_collected,
         'Balance Owed (INR)': e.balance_owed ?? 0,
         Note: e.note || '',
+        'Slip Photo URL': e.image_url || 'No Slip',
       };
     });
 
@@ -293,478 +283,667 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col pb-32">
-      <Header currentTab="daily" onTabChange={onNavigateTab} />
-
-      <main className="max-w-7xl 2xl:max-w-[1500px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-5 space-y-5">
+    <div className="h-screen w-screen max-h-screen overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between selection:bg-emerald-500/30 selection:text-emerald-300">
+      
+      {/* 1. POWER BI TOP RIBBON (UNIFIED CONTROLS IN 48PX BAR) */}
+      <header className="h-12 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-20">
         
-        {/* Date Navigator Bar */}
-        <div className="rounded-2xl bg-slate-900 border border-slate-800 p-3.5 shadow-glass flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Brand & Tab Navigation */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xs">
+            ₹
+          </div>
+          <span className="text-xs font-black tracking-tight text-white uppercase hidden xl:inline">
+            iThink AI
+          </span>
+
+          {/* Power BI Segmented Page Switcher */}
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+            <button
+              type="button"
+              onClick={() => onNavigateTab('daily')}
+              className="px-2.5 py-1 text-xs font-bold rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm flex items-center gap-1"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Daily</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('dashboard')}
+              className="px-2.5 py-1 text-xs font-medium rounded-md text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Analytics</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('users')}
+              className="px-2.5 py-1 text-xs font-medium rounded-md text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Operators</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Center: Power BI Date Navigator & Business Pills */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Date Navigator */}
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
             <button
               type="button"
               onClick={handlePrevDay}
-              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1 transition-all"
+              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+              title="Previous Day"
             >
-              <ChevronLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('prevDay')}</span>
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-
-            {/* Date Input Box */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700">
-              <Calendar className="w-4 h-4 text-emerald-400" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-                className="bg-transparent text-white font-mono font-bold text-sm outline-none cursor-pointer"
-              />
-              <span className="text-xs font-mono font-bold text-emerald-400 hidden sm:inline">
-                ({formatAppDate(selectedDate)})
-              </span>
-            </div>
-
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+              className="bg-transparent text-white font-mono font-bold text-xs px-1.5 outline-none cursor-pointer"
+            />
             <button
               type="button"
               onClick={handleNextDay}
-              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1 transition-all"
+              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+              title="Next Day"
             >
-              <span className="hidden sm:inline">{t('nextDay')}</span>
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
-
             <button
               type="button"
               onClick={handleToday}
-              className="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 transition-all"
+              className="px-2 py-0.5 text-[11px] font-bold rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
             >
-              {t('today')}
+              Today
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Business Filter Pills */}
+          <div className="hidden md:flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[11px] font-bold">
             <button
               type="button"
-              onClick={handleExportExcel}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-200 text-xs font-bold flex items-center gap-2 border border-slate-700 transition-all shadow-sm"
+              onClick={() => setSelectedBusiness('ALL')}
+              className={`px-2 py-1 rounded ${
+                selectedBusiness === 'ALL'
+                  ? 'bg-emerald-500 text-slate-950 font-black'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
             >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-              <span>{t('exportExcel')}</span>
+              All ({formatINR(totals.ALL)})
             </button>
             <button
               type="button"
-              onClick={loadDailyEntries}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+              onClick={() => setSelectedBusiness('STAR')}
+              className={`px-2 py-1 rounded ${
+                selectedBusiness === 'STAR'
+                  ? 'bg-emerald-500 text-slate-950 font-black'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              STAR ({formatINR(totals.STAR)})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedBusiness('ARBO PLAST')}
+              className={`px-2 py-1 rounded ${
+                selectedBusiness === 'ARBO PLAST'
+                  ? 'bg-emerald-500 text-slate-950 font-black'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              ARBO ({formatINR(totals['ARBO PLAST'])})
             </button>
           </div>
         </div>
 
-        {/* Business Selector Pill Switcher */}
-        <BusinessPills
-          selected={selectedBusiness}
-          onChange={setSelectedBusiness}
-          totals={totals}
-        />
+        {/* Right: Actions (Gallery, Backup, Export, Language, SignOut) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          
+          {/* Day Slips Gallery Button */}
+          <button
+            type="button"
+            onClick={() => setIsGalleryOpen(true)}
+            className="px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 hover:bg-teal-500/25 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+            title="View All Uploaded Slips for this Date"
+          >
+            <Camera className="w-3.5 h-3.5 text-teal-400" />
+            <span className="hidden sm:inline">Day Slips</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-black bg-teal-400 text-slate-950">
+              {daySlipsCount}
+            </span>
+          </button>
 
-        {/* Summary Cards */}
-        <SummaryCards
-          cashTotal={visibleCash}
-          phonePeTotal={visiblePhonePe}
-          grandTotal={visibleGrand}
-          entryCount={filteredEntries.length}
-        />
+          {/* Direct Backup Hub Button */}
+          <button
+            type="button"
+            onClick={() => setIsBackupOpen(true)}
+            className="px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+            title="Download Backup & Cloud Sync"
+          >
+            <Database className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden sm:inline">Backup</span>
+          </button>
 
-        {/* Filters & Search Row */}
-        <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          {/* Dealer Search */}
+          {/* Export Excel */}
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-600 hover:text-white border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 transition-all"
+            title="Download Excel for Selected Date"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden lg:inline">Excel</span>
+          </button>
+
+          {/* Refresh */}
+          <button
+            type="button"
+            onClick={loadDailyEntries}
+            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800"
+            title="Refresh Data"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+
+          {/* Language Toggle */}
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-0.5 flex items-center">
+            <button
+              type="button"
+              onClick={() => setLanguage('en')}
+              className={`px-1.5 py-0.5 text-[11px] font-bold rounded ${
+                language === 'en' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'
+              }`}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguage('te')}
+              className={`px-1.5 py-0.5 text-[11px] font-bold rounded ${
+                language === 'te' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'
+              }`}
+            >
+              తె
+            </button>
+          </div>
+
+          {/* Sign Out */}
+          <button
+            type="button"
+            onClick={signOut}
+            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
+            title="Sign Out"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+      </header>
+
+      {/* 2. POWER BI COMPACT KPI STRIP & INLINE FILTERS (HEIGHT 42PX) */}
+      <div className="h-10 bg-slate-900/90 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between gap-3 shrink-0 text-xs z-10">
+        
+        {/* KPI Scorecards Strip */}
+        <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto whitespace-nowrap">
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-400 uppercase text-[10px] font-bold">Cash:</span>
+            <span className="font-mono font-black text-emerald-400 text-xs">
+              {formatINR(visibleCash)}
+            </span>
+          </div>
+
+          <span className="text-slate-700">|</span>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-400 uppercase text-[10px] font-bold">PhonePe:</span>
+            <span className="font-mono font-black text-purple-400 text-xs">
+              {formatINR(visiblePhonePe)}
+            </span>
+          </div>
+
+          <span className="text-slate-700">|</span>
+
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+            <span className="text-emerald-300 uppercase text-[10px] font-bold">Grand Total:</span>
+            <span className="font-mono font-black text-emerald-400 text-xs">
+              {formatINR(visibleGrand)}
+            </span>
+          </div>
+
+          <span className="text-slate-700">|</span>
+
+          <span className="font-mono text-slate-400 text-[11px]">
+            {filteredEntries.length} {filteredEntries.length === 1 ? 'Record' : 'Records'}
+          </span>
+        </div>
+
+        {/* In-Line Power BI Filter Dropdowns */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Dealer Quick Search */}
           <div className="relative">
             <input
               type="text"
-              placeholder={t('searchDealer')}
+              placeholder="Filter dealer..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3.5 py-2 pl-9 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              className="w-32 sm:w-44 px-2 py-1 pl-6 bg-slate-950 border border-slate-800 rounded-md text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
             />
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3 h-3 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
           </div>
 
-          {/* Operator Filter */}
-          <div>
-            <select
-              value={filterOperator}
-              onChange={(e) => setFilterOperator(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
-            >
-              <option value="ALL">{t('allOperators')}</option>
-              {operators.map((op) => (
-                <option key={op.id} value={op.id}>
-                  {op.full_name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Operator Dropdown */}
+          <select
+            value={filterOperator}
+            onChange={(e) => setFilterOperator(e.target.value)}
+            className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-md text-[11px] text-white focus:outline-none focus:border-emerald-500"
+          >
+            <option value="ALL">All Operators</option>
+            {operators.map((op) => (
+              <option key={op.id} value={op.id}>
+                {op.full_name}
+              </option>
+            ))}
+          </select>
 
-          {/* Payment Mode Filter */}
-          <div>
-            <select
-              value={filterMode}
-              onChange={(e) => setFilterMode(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
-            >
-              <option value="ALL">{t('allModes')}</option>
-              <option value="CASH_ONLY">{t('cashOnly')}</option>
-              <option value="PHONEPE_ONLY">{t('phonePeOnly')}</option>
-              <option value="SPLIT">{t('splitOnly')}</option>
-            </select>
-          </div>
+          {/* Mode Dropdown */}
+          <select
+            value={filterMode}
+            onChange={(e) => setFilterMode(e.target.value)}
+            className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-md text-[11px] text-white focus:outline-none focus:border-emerald-500 hidden sm:inline-block"
+          >
+            <option value="ALL">All Modes</option>
+            <option value="CASH_ONLY">Cash Only</option>
+            <option value="PHONEPE_ONLY">PhonePe Only</option>
+            <option value="SPLIT">Split Only</option>
+          </select>
         </div>
 
-        {/* Grouped Table by Operator */}
-        <div className="space-y-6 pt-2">
-          {loading ? (
-            <div className="p-12 text-center text-slate-500 text-sm animate-pulse">
-              Loading collections for {formatAppDate(selectedDate)}...
-            </div>
-          ) : Object.keys(groupedByOperator).length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-800 p-12 text-center bg-slate-900/30">
-              <p className="text-sm text-slate-400">{t('noEntriesDate')}</p>
-            </div>
-          ) : (
-            Object.entries(groupedByOperator).map(([collectorId, group]) => {
-              const opCash = group.items.reduce((acc, curr) => acc + curr.cash_amount, 0);
-              const opPhonePe = group.items.reduce((acc, curr) => acc + curr.phonepe_amount, 0);
-              const opTotal = opCash + opPhonePe;
-
-              return (
-                <div
-                  key={collectorId}
-                  className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-glass"
-                >
-                  {/* Operator Subtotal Header Banner */}
-                  <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                      <h3 className="font-extrabold text-sm sm:text-base text-white tracking-tight">
-                        {group.operator?.full_name || 'Operator'}
-                      </h3>
-                      <span className="text-xs text-slate-400">({group.items.length} {t('entriesCount')})</span>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-xs font-mono">
-                      <span className="text-emerald-400">
-                        Cash: <strong>{formatINR(opCash)}</strong>
-                      </span>
-                      <span className="text-purple-400">
-                        PhonePe: <strong>{formatINR(opPhonePe)}</strong>
-                      </span>
-                      <span className="text-white font-bold bg-slate-950 px-2 py-1 rounded-md border border-slate-700">
-                        Subtotal: {formatINR(opTotal)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Desktop / Tablet Table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-slate-300">
-                      <thead className="bg-slate-950 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800 font-semibold">
-                        <tr>
-                          <th className="py-2.5 px-3">Time</th>
-                          <th className="py-2.5 px-3">Business</th>
-                          <th className="py-2.5 px-3">Dealer Name</th>
-                          <th className="py-2.5 px-3 font-mono">Cash (₹)</th>
-                          <th className="py-2.5 px-3 font-mono">PhonePe (₹)</th>
-                          <th className="py-2.5 px-3 font-mono">Total (₹)</th>
-                          <th className="py-2.5 px-3 font-mono">Bal. Owed</th>
-                          <th className="py-2.5 px-3">Slip</th>
-                          <th className="py-2.5 px-3 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60 font-medium">
-                        {group.items.map((entry) => (
-                          <tr key={entry.id} className="hover:bg-slate-800/40 transition-colors">
-                            <td className="py-2.5 px-3 font-mono text-slate-400 whitespace-nowrap">
-                              {formatAppTime(entry.created_at)}
-                            </td>
-                            <td className="py-2.5 px-3 whitespace-nowrap">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase ${
-                                  entry.business_name === 'STAR'
-                                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                    : 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
-                                }`}
-                              >
-                                {entry.business_name}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 font-bold text-white max-w-[200px] truncate">
-                              <div>{entry.dealer_name}</div>
-                              {entry.note && (
-                                <div className="text-[11px] text-slate-400 italic font-normal truncate">
-                                  {entry.note}
-                                </div>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 font-mono text-emerald-400 whitespace-nowrap font-bold">
-                              {entry.cash_amount > 0 ? formatINR(entry.cash_amount) : '-'}
-                            </td>
-                            <td className="py-2.5 px-3 font-mono text-purple-400 whitespace-nowrap font-bold">
-                              {entry.phonepe_amount > 0 ? formatINR(entry.phonepe_amount) : '-'}
-                            </td>
-                            <td className="py-2.5 px-3 font-mono text-white font-extrabold whitespace-nowrap">
-                              {formatINR(entry.total_collected)}
-                            </td>
-                            <td className="py-2.5 px-3 font-mono whitespace-nowrap">
-                              {entry.balance_owed !== null ? (
-                                <span className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 text-[11px]">
-                                  {formatINR(entry.balance_owed)}
-                                </span>
-                              ) : (
-                                <span className="text-slate-600">-</span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 whitespace-nowrap">
-                              {entry.image_url ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewImageUrl(entry.image_url)}
-                                  className="p-1 rounded bg-slate-800 text-emerald-400 hover:text-white"
-                                  title="View Slip"
-                                >
-                                  <Image className="w-3.5 h-3.5" />
-                                </button>
-                              ) : (
-                                <span className="text-slate-600">-</span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => handleStartEdit(entry)}
-                                  className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
-                                  title="Edit Entry"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setDeletingEntry(entry)}
-                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                                  title="Soft Delete Entry"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </main>
-
-      {/* FIXED BOTTOM GRAND TOTAL BAR */}
-      <div className="fixed bottom-0 inset-x-0 z-30 p-3 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 shadow-2xl">
-        <div className="max-w-7xl 2xl:max-w-[1500px] mx-auto flex flex-wrap items-center justify-between gap-3 px-4 lg:px-8">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Grand Total ({filteredEntries.length} {t('entriesCount')}):
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4 font-mono text-sm sm:text-base font-bold">
-            <span className="text-emerald-400">
-              Cash: <strong>{formatINR(visibleCash)}</strong>
-            </span>
-            <span className="text-purple-400">
-              PhonePe: <strong>{formatINR(visiblePhonePe)}</strong>
-            </span>
-            <span className="text-white text-base sm:text-lg font-black bg-gradient-to-r from-emerald-400 via-teal-300 to-white bg-clip-text text-transparent">
-              Grand: {formatINR(visibleGrand)}
-            </span>
-          </div>
-        </div>
       </div>
 
-      {/* EDIT ENTRY MODAL */}
+      {/* 3. POWER BI DATA CANVAS (REMAINDER VIEWPORT HEIGHT - STRICT INTERNAL SCROLL) */}
+      <main className="flex-1 overflow-y-auto w-full px-2 sm:px-4 py-2 relative">
+        
+        {loading ? (
+          <div className="h-full flex items-center justify-center text-slate-500 text-xs animate-pulse">
+            Loading collection records for {formatAppDate(selectedDate)}...
+          </div>
+        ) : filteredEntries.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-slate-500 p-8 border border-dashed border-slate-800 rounded-2xl bg-slate-900/30">
+            <Calendar className="w-10 h-10 text-slate-600 mb-2" />
+            <h4 className="text-sm font-bold text-slate-300">No Collections Recorded</h4>
+            <p className="text-xs text-slate-500 mt-0.5">
+              No entries found for {formatAppDate(selectedDate)} under current filters.
+            </p>
+          </div>
+        ) : (
+          <div className="border border-slate-800 rounded-xl overflow-hidden shadow-2xl bg-slate-900/80">
+            <table className="w-full text-left border-collapse text-xs">
+              
+              {/* Sticky Table Header */}
+              <thead className="sticky top-0 z-10 bg-slate-950 border-b border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <tr>
+                  <th className="py-2.5 px-3">Time</th>
+                  <th className="py-2.5 px-3">Operator</th>
+                  <th className="py-2.5 px-3">Business</th>
+                  <th className="py-2.5 px-3">Dealer Name</th>
+                  <th className="py-2.5 px-3 text-right">Cash (₹)</th>
+                  <th className="py-2.5 px-3 text-right">PhonePe (₹)</th>
+                  <th className="py-2.5 px-3 text-right">Total (₹)</th>
+                  <th className="py-2.5 px-3 text-right">Bal Owed</th>
+                  <th className="py-2.5 px-3 text-center">Slip Photo</th>
+                  <th className="py-2.5 px-3">Note</th>
+                  <th className="py-2.5 px-3 text-center">Actions</th>
+                </tr>
+              </thead>
+
+              {/* Table Body */}
+              <tbody className="divide-y divide-slate-800/80 font-medium">
+                {filteredEntries.map((e, idx) => {
+                  const op = operators.find((o) => o.id === e.collector_id);
+                  return (
+                    <tr
+                      key={e.id}
+                      className={`hover:bg-slate-800/60 transition-colors ${
+                        idx % 2 === 0 ? 'bg-slate-900/40' : 'bg-slate-950/40'
+                      }`}
+                    >
+                      {/* Time */}
+                      <td className="py-2 px-3 font-mono text-slate-400 whitespace-nowrap">
+                        {formatAppTime(e.created_at)}
+                      </td>
+
+                      {/* Operator */}
+                      <td className="py-2 px-3 text-slate-300 font-semibold whitespace-nowrap">
+                        {op?.full_name || 'Operator'}
+                      </td>
+
+                      {/* Business Tag */}
+                      <td className="py-2 px-3 whitespace-nowrap">
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                            e.business_name === 'STAR'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
+                          }`}
+                        >
+                          {e.business_name}
+                        </span>
+                      </td>
+
+                      {/* Dealer Name */}
+                      <td className="py-2 px-3 font-bold text-white whitespace-nowrap">
+                        {e.dealer_name}
+                      </td>
+
+                      {/* Cash */}
+                      <td className="py-2 px-3 text-right font-mono text-emerald-400">
+                        {e.cash_amount > 0 ? formatINR(e.cash_amount) : '-'}
+                      </td>
+
+                      {/* PhonePe */}
+                      <td className="py-2 px-3 text-right font-mono text-purple-400">
+                        {e.phonepe_amount > 0 ? formatINR(e.phonepe_amount) : '-'}
+                      </td>
+
+                      {/* Total */}
+                      <td className="py-2 px-3 text-right font-mono font-black text-white">
+                        {formatINR(e.total_collected)}
+                      </td>
+
+                      {/* Balance Owed */}
+                      <td className="py-2 px-3 text-right font-mono text-amber-400">
+                        {e.balance_owed !== null ? formatINR(e.balance_owed) : '-'}
+                      </td>
+
+                      {/* Slip Photo Column with Thumbnail */}
+                      <td className="py-2 px-3 text-center whitespace-nowrap">
+                        {e.image_url ? (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewImageUrl(e.image_url)}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-teal-500/15 border border-teal-500/30 text-teal-300 hover:bg-teal-500/25 transition-all text-[11px]"
+                            title="Click to view full slip"
+                          >
+                            <img
+                              src={e.image_url}
+                              alt="Slip"
+                              className="w-5 h-5 rounded object-cover border border-slate-700"
+                            />
+                            <span>View</span>
+                          </button>
+                        ) : (
+                          <span className="text-slate-600 font-mono">-</span>
+                        )}
+                      </td>
+
+                      {/* Note */}
+                      <td className="py-2 px-3 text-slate-400 truncate max-w-[140px]" title={e.note || ''}>
+                        {e.note || '-'}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-2 px-3 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(e)}
+                            className="p-1 rounded text-slate-400 hover:text-emerald-400 hover:bg-slate-800"
+                            title="Edit Record (Audit Logged)"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeletingEntry(e);
+                              setDeleteReason('');
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800"
+                            title="Soft Delete (Audit Logged)"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+      </main>
+
+      {/* 4. POWER BI COMPACT STATUS BAR (HEIGHT 28PX) */}
+      <footer className="h-7 bg-slate-950 border-t border-slate-800/80 px-3 sm:px-4 flex items-center justify-between text-[11px] text-slate-400 shrink-0 z-20">
+        <div className="flex items-center gap-2">
+          <span>Date: <strong className="text-white font-mono">{formatAppDate(selectedDate)}</strong></span>
+          <span className="text-slate-700">•</span>
+          <span>Showing: <strong className="text-emerald-400 font-mono">{filteredEntries.length}</strong> collections</span>
+        </div>
+        <div className="flex items-center gap-4 font-mono font-bold text-xs">
+          <span>Cash: <strong className="text-emerald-400">{formatINR(visibleCash)}</strong></span>
+          <span>PhonePe: <strong className="text-purple-400">{formatINR(visiblePhonePe)}</strong></span>
+          <span>Total: <strong className="text-white">{formatINR(visibleGrand)}</strong></span>
+        </div>
+      </footer>
+
+      {/* BACKUP & CLOUD SYNC HUB MODAL */}
+      <BackupModal
+        isOpen={isBackupOpen}
+        onClose={() => setIsBackupOpen(false)}
+      />
+
+      {/* DAY SLIPS GALLERY MODAL */}
+      <DaySlipsGalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        selectedDate={selectedDate}
+        entries={entries}
+        operators={operators}
+      />
+
+      {/* SINGLE IMAGE LIGHTBOX MODAL */}
+      {previewImageUrl && (
+        <div className="fixed inset-0 z-60 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="relative max-w-3xl max-h-[90vh] flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setPreviewImageUrl(null)}
+              className="absolute -top-12 right-0 p-2 text-white bg-slate-800/80 rounded-full hover:bg-slate-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img
+              src={previewImageUrl}
+              alt="Bill Slip"
+              className="max-h-[80vh] w-auto max-w-full rounded-2xl object-contain border border-slate-800 shadow-2xl"
+            />
+            <div className="mt-3 flex items-center gap-3">
+              <a
+                href={previewImageUrl}
+                target="_blank"
+                rel="noreferrer"
+                download={`Slip_${selectedDate}.jpg`}
+                className="px-4 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 hover:brightness-110"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download High-Res Slip</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
       {editingEntry && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-800 p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div>
-                <h3 className="font-bold text-lg text-white">Edit Collection Entry</h3>
-                <p className="text-xs text-slate-400">Will be logged in immutable audit trail</p>
-              </div>
+              <h3 className="font-bold text-sm text-white">Edit Collection Entry (Audited)</h3>
               <button
                 type="button"
                 onClick={() => setEditingEntry(null)}
                 className="text-slate-400 hover:text-white"
               >
-                <Plus className="w-5 h-5 rotate-45" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase">Dealer Name</label>
+                <label className="block text-slate-400 mb-1">Business</label>
+                <select
+                  value={editBusiness}
+                  onChange={(e) => setEditBusiness(e.target.value as BusinessName)}
+                  className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-bold"
+                >
+                  <option value="STAR">STAR</option>
+                  <option value="ARBO PLAST">ARBO PLAST</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Dealer Name</label>
                 <input
                   type="text"
                   value={editDealer}
                   onChange={(e) => setEditDealer(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm"
+                  className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs font-semibold text-emerald-400 uppercase">Cash (₹)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={editCash}
-                    onChange={(e) => setEditCash(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-purple-400 uppercase">PhonePe (₹)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={editPhonePe}
-                    onChange={(e) => setEditPhonePe(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-sm"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase">Balance Owed (₹)</label>
+                <label className="block text-emerald-400 mb-1">Cash (₹)</label>
                 <input
                   type="number"
-                  step="any"
-                  value={editBalOwed}
-                  onChange={(e) => setEditBalOwed(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-sm"
+                  value={editCash}
+                  onChange={(e) => setEditCash(e.target.value)}
+                  className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono font-bold"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
-                  Reason for Edit * (Required for Audit Log)
-                </label>
+                <label className="block text-purple-400 mb-1">PhonePe (₹)</label>
+                <input
+                  type="number"
+                  value={editPhonePe}
+                  onChange={(e) => setEditPhonePe(e.target.value)}
+                  className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-amber-400 mb-1">Balance Owed (₹)</label>
+                <input
+                  type="number"
+                  value={editBalOwed}
+                  onChange={(e) => setEditBalOwed(e.target.value)}
+                  className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Note</label>
                 <input
                   type="text"
-                  placeholder="e.g. Corrected typo in dealer cash amount"
-                  value={editReason}
-                  onChange={(e) => setEditReason(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-amber-500/50 rounded-xl text-white text-sm focus:border-amber-400"
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                  className="w-full p-2 bg-slate-950 border border-slate-700 rounded-lg text-white"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-2">
+            <div>
+              <label className="block text-rose-400 text-xs font-bold mb-1">
+                Reason for Edit * (Required for Audit Trail)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Corrected typo in dealer name / cash amount"
+                value={editReason}
+                onChange={(e) => setEditReason(e.target.value)}
+                className="w-full p-2 bg-slate-950 border border-rose-500/50 rounded-lg text-xs text-white"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setEditingEntry(null)}
-                className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs text-slate-300 font-semibold"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveEdit}
-                disabled={!editReason.trim()}
-                className="flex-1 py-3 rounded-xl bg-emerald-500 text-slate-950 font-extrabold text-xs shadow-glow-brand hover:brightness-110 disabled:opacity-50"
+                className="px-4 py-1.5 rounded-lg bg-emerald-500 text-xs text-slate-950 font-bold"
               >
-                Save & Audit
+                Save & Audit Log
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* SOFT DELETE CONFIRMATION MODAL */}
+      {/* DELETE MODAL */}
       {deletingEntry && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-rose-400">
-              <AlertTriangle className="w-6 h-6 shrink-0" />
-              <h3 className="font-bold text-lg text-white">{t('confirmDelete')}</h3>
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-rose-500/40 p-5 shadow-2xl space-y-4">
+            <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span>Confirm Soft Deletion</span>
             </div>
 
-            <p className="text-xs text-slate-400">
-              {t('deleteWarning')}
+            <p className="text-xs text-slate-300">
+              Are you sure you want to delete collection from{' '}
+              <strong className="text-white">{deletingEntry.dealer_name}</strong> for{' '}
+              <strong className="text-emerald-400 font-mono">
+                {formatINR(deletingEntry.total_collected)}
+              </strong>
+              ? This action will be recorded in the audit log.
             </p>
 
-            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
-              <div>Dealer: <strong className="text-white">{deletingEntry.dealer_name}</strong></div>
-              <div>Amount: <strong className="text-emerald-400 font-mono">{formatINR(deletingEntry.total_collected)}</strong></div>
-            </div>
-
             <div>
-              <label className="text-xs font-semibold text-rose-400 uppercase tracking-wider block mb-1">
-                {t('reasonForDelete')} *
+              <label className="block text-rose-400 text-xs font-bold mb-1">
+                Reason for Deletion * (Required)
               </label>
               <input
                 type="text"
-                placeholder="e.g. Duplicate entry made by mistake"
+                placeholder="e.g. Duplicate entry made by operator"
                 value={deleteReason}
                 onChange={(e) => setDeleteReason(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-rose-500/50 rounded-xl text-white text-sm focus:border-rose-400"
+                className="w-full p-2 bg-slate-950 border border-rose-500/50 rounded-lg text-xs text-white"
               />
             </div>
 
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setDeletingEntry(null)}
-                className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs text-slate-300 font-semibold"
               >
-                {t('cancel')}
+                Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDelete}
-                disabled={!deleteReason.trim()}
-                className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-extrabold text-xs shadow-lg hover:bg-rose-500 disabled:opacity-50"
+                className="px-4 py-1.5 rounded-lg bg-rose-500 text-xs text-white font-bold"
               >
-                {t('delete')}
+                Confirm Delete
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Slip Image Fullscreen Modal */}
-      {previewImageUrl && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
-          onClick={() => setPreviewImageUrl(null)}
-        >
-          <div className="relative max-w-lg w-full max-h-[90vh] flex flex-col items-center">
-            <button
-              type="button"
-              onClick={() => setPreviewImageUrl(null)}
-              className="absolute top-2 right-2 p-2 rounded-full bg-slate-900/80 text-white hover:bg-slate-800"
-            >
-              <Plus className="w-5 h-5 rotate-45" />
-            </button>
-            <img
-              src={previewImageUrl}
-              alt="Slip"
-              className="rounded-2xl max-h-[85vh] object-contain border border-slate-800"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
+export default AdminDailyPage;
