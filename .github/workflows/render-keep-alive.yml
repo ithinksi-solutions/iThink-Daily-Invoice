@@ -1,0 +1,39 @@
+name: Render & Supabase 10-Minute Keep-Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes (cron format: minute hour day month day-of-week)
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping Render & Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep-Alive HTTP Ping
+        run: |
+          echo "=================================================="
+          echo "Sending 10-minute Keep-Alive Ping"
+          echo "Timestamp: $(date -u)"
+          echo "=================================================="
+
+          # 1. Ping Render URLs (Custom secret URL if set, plus default service slugs)
+          RENDER_TARGET="${{ secrets.RENDER_APP_URL }}"
+          if [ -n "$RENDER_TARGET" ]; then
+            echo "Pinging configured Render URL: $RENDER_TARGET"
+            curl -s -I -m 15 "$RENDER_TARGET" | head -n 1 || echo "Render custom URL ping sent"
+          fi
+
+          echo "Pinging Render default static services..."
+          curl -s -I -m 15 "https://daily-collection-tracker.onrender.com" | head -n 1 || echo "Render ping sent"
+          curl -s -I -m 15 "https://ithink-daily-invoice.onrender.com" | head -n 1 || echo "Render slug ping sent"
+
+          # 2. Ping Supabase REST API (Keeps database warm and unpaused)
+          echo "Pinging Supabase Database REST Gateway..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -m 15 \
+            "https://tgfhgyqlbmpjmlnijggf.supabase.co/rest/v1/" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnZmhneXFsYm1wam1sbmlqZ2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzMDQxMzcsImV4cCI6MjEwNzg4MDEzN30.272zMIr9IxrTgBPeq3-zNe-RlAUJHQI_skyrKAZ6d38")
+          echo "Supabase Response Code: $HTTP_STATUS"
+
+          echo "Keep-alive ping completed successfully!"
