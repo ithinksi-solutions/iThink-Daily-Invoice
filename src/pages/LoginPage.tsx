@@ -22,7 +22,7 @@ export const LoginPage: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
 
   const [email, setEmail] = useState<string>('admin@ithinkai.in');
-  const [password, setPassword] = useState<string>('Tracker@2026');
+  const [password, setPassword] = useState<string>('Admin@2026');
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -40,7 +40,11 @@ export const LoginPage: React.FC = () => {
 
   const setFastLogin = (accEmail: string) => {
     setEmail(accEmail);
-    setPassword('Tracker@2026');
+    if (accEmail === 'admin@ithinkai.in') {
+      setPassword('Admin@2026');
+    } else {
+      setPassword('Tracker@2026');
+    }
     setErrorMsg(null);
   };
 
@@ -372,7 +376,7 @@ export const LoginPage: React.FC = () => {
                   <ShieldCheck className="w-3 h-3 text-emerald-500" />
                   PostgreSQL 17 RLS Active
                 </span>
-                <span className="font-mono">Pass: Tracker@2026</span>
+                <span className="font-mono">Admin: Admin@2026 | Op: Tracker@2026</span>
               </div>
 
             </div>
