@@ -8,12 +8,9 @@ import {
   ShieldCheck,
   UserCheck,
   AlertCircle,
-  Shield,
-  Zap,
-  TrendingUp,
-  Building2,
-  CheckCircle2,
-  Clock,
+  Receipt,
+  Camera,
+  BarChart3,
   Sparkles
 } from 'lucide-react';
 
@@ -59,7 +56,7 @@ export const LoginPage: React.FC = () => {
       {/* Subtle Grid Backdrop Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
 
-      {/* TOP COMPACT HEADER BAR */}
+      {/* TOP HEADER BAR */}
       <header className="relative z-10 w-full px-5 lg:px-10 py-3 flex items-center justify-between border-b border-white/[0.06] bg-slate-950/40 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-emerald-300 p-0.5 shadow-glow-brand flex items-center justify-center">
@@ -74,47 +71,33 @@ export const LoginPage: React.FC = () => {
             <span className="hidden sm:inline text-xs text-slate-400 font-medium">
               | Daily Collection Terminal
             </span>
-            <span className="px-1.5 py-0.5 text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">
-              v2.4
-            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
-          {/* Live Cutoff Status Pill */}
-          <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="font-medium">12:00 AM IST Cutoff Guard</span>
-          </div>
-
-          {/* Bilingual Language Switcher */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-0.5 flex items-center shadow-inner">
-            <button
-              type="button"
-              onClick={() => setLanguage('en')}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-                language === 'en'
-                  ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              onClick={() => setLanguage('te')}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-                language === 'te'
-                  ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              తెలుగు
-            </button>
-          </div>
+        {/* Bilingual Language Switcher */}
+        <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-0.5 flex items-center shadow-inner">
+          <button
+            type="button"
+            onClick={() => setLanguage('en')}
+            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+              language === 'en'
+                ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            EN
+          </button>
+          <button
+            type="button"
+            onClick={() => setLanguage('te')}
+            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+              language === 'te'
+                ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            తెలుగు
+          </button>
         </div>
       </header>
 
@@ -122,100 +105,61 @@ export const LoginPage: React.FC = () => {
       <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-10 py-3 sm:py-4 flex items-center overflow-y-auto lg:overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-10 w-full items-center my-auto">
           
-          {/* LEFT COLUMN: ENTERPRISE SHOWCASE (STAR & ARBO PLAST) */}
-          <div className="hidden lg:flex lg:col-span-7 flex-col justify-center space-y-4 xl:space-y-5 pr-2">
+          {/* LEFT COLUMN: ENTERPRISE OVERVIEW */}
+          <div className="hidden lg:flex lg:col-span-7 flex-col justify-center space-y-5 pr-4">
             
             {/* Pill Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold w-fit tracking-wide">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Fortune-5 Dual Business Fiscal Architecture</span>
+              <span>Digital Fiscal Register</span>
             </div>
 
             {/* Main Headline */}
             <div>
               <h1 className="text-2xl xl:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                Daily Fiscal Collection & Slip Reconciliation Desk
+                Daily Collection & Slip Reconciliation Desk
               </h1>
               <p className="mt-2 text-xs xl:text-sm text-slate-400 leading-relaxed max-w-xl">
-                Streamlined money collection tracker replacing physical ledger sheets. Pure daily receipts, split cash/PhonePe reconciliation, and automated midnight fiscal seal.
+                Replaces handwritten collection sheets with fast daily receipts, split payment tracking, and automated reconciliation.
               </p>
             </div>
 
-            {/* LIVE VERIFIED BATCH TERMINAL CARD */}
-            <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-500 opacity-70" />
-              
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800/70">
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                    Audited Daily Slips • Real Physical Sheet
-                  </span>
+            {/* Feature Cards Grid */}
+            <div className="space-y-3 pt-1 max-w-xl">
+              <div className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md flex items-start gap-3.5">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0 mt-0.5">
+                  <Receipt className="w-4 h-4" />
                 </div>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center gap-1 font-semibold">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                  Operator 1 Verified
-                </span>
-              </div>
-
-              {/* 2-Business Breakdown Grid */}
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                {/* STAR Business */}
-                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/60">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-black tracking-wider text-emerald-400">STAR</span>
-                    <span className="text-[10px] text-slate-400 font-mono">8 Slips</span>
-                  </div>
-                  <div className="text-lg xl:text-xl font-black text-white font-mono">
-                    ₹ 61,500<span className="text-xs text-slate-400">.00</span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
-                    <span>Cash: ₹9,500</span>
-                    <span className="text-purple-400">PhonePe: ₹52,000</span>
-                  </div>
-                </div>
-
-                {/* ARBO PLAST Business */}
-                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/60">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-black tracking-wider text-teal-400">ARBO PLAST</span>
-                    <span className="text-[10px] text-slate-400 font-mono">1 Slip</span>
-                  </div>
-                  <div className="text-lg xl:text-xl font-black text-white font-mono">
-                    ₹ 12,500<span className="text-xs text-slate-400">.00</span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
-                    <span>Cash: ₹0</span>
-                    <span className="text-purple-400">PhonePe: ₹12,500</span>
-                  </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-200">Split Payment Tracking</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                    Record Cash, PhonePe, or split transactions in a single verified collection entry.
+                  </p>
                 </div>
               </div>
 
-              {/* Combined Grand Total Ribbon */}
-              <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-slate-300 font-medium">Reconciled Batch Grand Total:</span>
+              <div className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md flex items-start gap-3.5">
+                <div className="p-2 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20 shrink-0 mt-0.5">
+                  <Camera className="w-4 h-4" />
                 </div>
-                <div className="text-base font-black text-emerald-400 font-mono">
-                  ₹ 74,000.00
+                <div>
+                  <h3 className="text-xs font-bold text-slate-200">Digital Slip Archival</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                    Capture and attach physical slip receipts directly from mobile camera or gallery.
+                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* Architecture Guarantees Checklist */}
-            <div className="grid grid-cols-3 gap-2 pt-1 text-[11px] text-slate-400">
-              <div className="flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Postgres RLS Enforced</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                <span>Strict 12:00 AM Seal</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>Zero Ledger Drift</span>
+              <div className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md flex items-start gap-3.5">
+                <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0 mt-0.5">
+                  <BarChart3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-200">Reconciliation & Export</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                    Real-time daily subtotals grouped by operator with 1-click Excel and CSV exports.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -370,15 +314,6 @@ export const LoginPage: React.FC = () => {
                 </button>
               </form>
 
-              {/* RLS Security Footnote */}
-              <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500">
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                  PostgreSQL 17 RLS Active
-                </span>
-                <span className="font-mono">Admin: Admin@2026 | Op: Tracker@2026</span>
-              </div>
-
             </div>
 
           </div>
@@ -390,12 +325,9 @@ export const LoginPage: React.FC = () => {
       <footer className="relative z-10 w-full px-5 lg:px-10 py-2.5 border-t border-white/[0.06] bg-slate-950/60 backdrop-blur-md flex items-center justify-between text-[11px] text-slate-500 shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-slate-400 font-medium">iThink AI Technologies</span>
-          <span className="hidden sm:inline text-slate-600">•</span>
-          <span className="hidden sm:inline">Fortune-5 Daily Collection Platform</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="hidden md:inline text-slate-500">STAR & ARBO PLAST</span>
-          <span className="font-mono text-emerald-400/80">Render + Supabase Live</span>
+          <span className="text-slate-500">© 2026 All Rights Reserved</span>
         </div>
       </footer>
 
