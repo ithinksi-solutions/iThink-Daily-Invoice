@@ -6,43 +6,47 @@ import {
   Mail,
   ArrowRight,
   ShieldCheck,
-  UserCheck,
   AlertCircle,
   Receipt,
   Camera,
   BarChart3,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff,
+  Loader2
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const { signIn } = useAuth();
   const { language, setLanguage, t } = useLanguage();
 
-  const [email, setEmail] = useState<string>('admin@ithinkai.in');
-  const [password, setPassword] = useState<string>('Admin@2026');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    if (!email.trim() || !password) {
+      setErrorMsg('Please enter both your email address and password.');
+      return;
+    }
+
     setLoading(true);
 
-    const { error } = await signIn(email.trim(), password);
-    if (error) {
-      setErrorMsg(error.message || 'Login failed. Please check credentials.');
+    try {
+      const { error } = await signIn(email.trim(), password);
+      if (error) {
+        setErrorMsg(error.message || 'Invalid email or password. Please verify your credentials.');
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Connection error. Please try again.');
       setLoading(false);
     }
-  };
-
-  const setFastLogin = (accEmail: string) => {
-    setEmail(accEmail);
-    if (accEmail === 'admin@ithinkai.in') {
-      setPassword('Admin@2026');
-    } else {
-      setPassword('Tracker@2026');
-    }
-    setErrorMsg(null);
   };
 
   return (
@@ -57,7 +61,7 @@ export const LoginPage: React.FC = () => {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
 
       {/* TOP HEADER BAR */}
-      <header className="relative z-10 w-full px-5 lg:px-10 py-3 flex items-center justify-between border-b border-white/[0.06] bg-slate-950/40 backdrop-blur-md shrink-0">
+      <header className="relative z-10 w-full px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between border-b border-white/[0.06] bg-slate-950/40 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-emerald-300 p-0.5 shadow-glow-brand flex items-center justify-center">
             <div className="w-full h-full bg-[#030712] rounded-[10px] flex items-center justify-center font-black text-emerald-400 text-sm tracking-wider">
@@ -98,11 +102,11 @@ export const LoginPage: React.FC = () => {
         </div>
       </header>
 
-      {/* MAIN VIEWPORT CONTENT (ZERO SCROLL FIT FOR 15" LAPTOPS) */}
+      {/* MAIN VIEWPORT CONTENT */}
       <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-10 py-3 sm:py-4 flex items-center overflow-y-auto lg:overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-10 w-full items-center my-auto">
           
-          {/* LEFT COLUMN: ENTERPRISE OVERVIEW */}
+          {/* LEFT COLUMN: ENTERPRISE OVERVIEW (Tablet / Desktop) */}
           <div className="hidden lg:flex lg:col-span-7 flex-col justify-center space-y-5 pr-4">
             
             {/* Pill Badge */}
@@ -162,146 +166,111 @@ export const LoginPage: React.FC = () => {
 
           </div>
 
-          {/* RIGHT COLUMN: EXECUTIVE LOGIN CONSOLE */}
+          {/* RIGHT COLUMN: EXECUTIVE LOGIN CONSOLE (Mobile / Tablet / Desktop) */}
           <div className="col-span-1 lg:col-span-5 flex flex-col justify-center max-w-md mx-auto w-full">
             
-            <div className="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-5 xl:p-6 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+            <div className="bg-slate-900/90 border border-slate-800/90 rounded-3xl p-6 sm:p-7 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
               
               {/* Top Accent Gradient Border */}
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-500" />
 
               {/* Mobile-only brand badge */}
-              <div className="lg:hidden flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-xs">
+              <div className="lg:hidden flex items-center gap-2 mb-4">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-xs">
                   ₹
                 </div>
-                <span className="text-xs font-bold text-white uppercase tracking-wider whitespace-nowrap">
+                <span className="text-sm font-bold text-white uppercase tracking-wider whitespace-nowrap">
                   Daily Invoice
                 </span>
               </div>
 
               {/* Console Title */}
               <div>
-                <h2 className="text-lg xl:text-xl font-bold text-white tracking-tight">
+                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                   {t('loginTitle')}
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Authorize terminal via role or credentials
+                <p className="text-xs text-slate-400 mt-1">
+                  Enter your credentials to access the terminal
                 </p>
-              </div>
-
-              {/* ONE-CLICK ROLE SELECTOR (Admin + 3 Operators) */}
-              <div className="mt-3.5 p-2 bg-slate-950/70 rounded-xl border border-slate-800/80">
-                <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 px-0.5">
-                  <span>Fast Role Switcher</span>
-                  <span className="text-emerald-400">1-Tap Preset</span>
-                </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setFastLogin('admin@ithinkai.in')}
-                    className={`px-1.5 py-1.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-0.5 ${
-                      email === 'admin@ithinkai.in'
-                        ? 'bg-purple-600 text-white shadow-md ring-1 ring-purple-400/50'
-                        : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span className="text-[10px] tracking-tight">Admin</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setFastLogin('operator1@ithinkai.in')}
-                    className={`px-1.5 py-1.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-0.5 ${
-                      email === 'operator1@ithinkai.in'
-                        ? 'bg-emerald-500 text-slate-950 shadow-md ring-1 ring-emerald-300/60'
-                        : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span className="text-[10px] tracking-tight">Op 1</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setFastLogin('operator2@ithinkai.in')}
-                    className={`px-1.5 py-1.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-0.5 ${
-                      email === 'operator2@ithinkai.in'
-                        ? 'bg-emerald-500 text-slate-950 shadow-md ring-1 ring-emerald-300/60'
-                        : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span className="text-[10px] tracking-tight">Op 2</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setFastLogin('operator3@ithinkai.in')}
-                    className={`px-1.5 py-1.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-0.5 ${
-                      email === 'operator3@ithinkai.in'
-                        ? 'bg-emerald-500 text-slate-950 shadow-md ring-1 ring-emerald-300/60'
-                        : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span className="text-[10px] tracking-tight">Op 3</span>
-                  </button>
-                </div>
               </div>
 
               {/* Error Alert */}
               {errorMsg && (
-                <div className="mt-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2 animate-shake">
+                <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs flex items-center gap-2.5 animate-shake">
                   <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span className="truncate">{errorMsg}</span>
+                  <span className="leading-snug">{errorMsg}</span>
                 </div>
               )}
 
-              {/* Form Controls */}
-              <form className="mt-3 space-y-3" onSubmit={handleSubmit}>
+              {/* Secure Form Controls (No hardcoded credentials, optimized for touch keyboards) */}
+              <form className="mt-5 space-y-4" onSubmit={handleSubmit} noValidate>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
                     {t('email')}
                   </label>
                   <div className="relative">
                     <input
                       type="email"
                       required
+                      inputMode="email"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck="false"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-3 py-2.5 pl-9 bg-slate-950/90 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-xs sm:text-sm font-medium transition-all"
-                      placeholder="operator1@ithinkai.in"
+                      className="w-full px-3.5 py-3 pl-10 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-medium transition-all"
+                      placeholder="e.g. operator1@ithinkai.in"
                     />
-                    <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
                     {t('password')}
                   </label>
                   <div className="relative">
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
+                      autoComplete="current-password"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck="false"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-3 py-2.5 pl-9 bg-slate-950/90 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-xs sm:text-sm font-medium transition-all"
+                      className="w-full px-3.5 py-3 pl-10 pr-10 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-medium transition-all font-mono"
                       placeholder="••••••••••••"
                     />
-                    <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    
+                    {/* Password Show/Hide Toggle for Mobile & Tablet touch ease */}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4 text-slate-400" />
+                      ) : (
+                        <Eye className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-2 py-3 px-4 rounded-xl shadow-glow-brand text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+                  className="w-full mt-2 py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-500/20 text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer min-h-[46px]"
                 >
                   {loading ? (
-                    <span>{t('signingIn')}</span>
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                      <span>{t('signingIn')}</span>
+                    </span>
                   ) : (
                     <>
                       <span>Authorize Terminal Access</span>
@@ -311,6 +280,12 @@ export const LoginPage: React.FC = () => {
                 </button>
               </form>
 
+              {/* Security Badge */}
+              <div className="mt-4 pt-3.5 border-t border-slate-800/80 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500/70" />
+                <span>SSL Encrypted • Strict Role Authentication</span>
+              </div>
+
             </div>
 
           </div>
@@ -319,7 +294,7 @@ export const LoginPage: React.FC = () => {
       </main>
 
       {/* FOOTER BAR (COMPACT & CLEAN) */}
-      <footer className="relative z-10 w-full px-5 lg:px-10 py-2.5 border-t border-white/[0.06] bg-slate-950/60 backdrop-blur-md flex items-center justify-between text-[11px] text-slate-500 shrink-0">
+      <footer className="relative z-10 w-full px-4 sm:px-6 lg:px-10 py-2.5 border-t border-white/[0.06] bg-slate-950/60 backdrop-blur-md flex items-center justify-between text-[11px] text-slate-500 shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-slate-400 font-medium">iThink AI Technologies</span>
         </div>

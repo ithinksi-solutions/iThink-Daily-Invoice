@@ -28,7 +28,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigateTab })
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [resettingUser, setResettingUser] = useState<Profile | null>(null);
-  const [newPassword, setNewPassword] = useState<string>('Tracker@2026');
+  const [newPassword, setNewPassword] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const loadProfiles = async () => {
@@ -241,7 +241,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigateTab })
                         type="button"
                         onClick={() => {
                           setResettingUser(p);
-                          setNewPassword('Tracker@2026');
+                          setNewPassword('');
                         }}
                         className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold inline-flex items-center gap-1 border border-slate-700 transition-colors"
                       >
@@ -308,7 +308,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigateTab })
                     type="button"
                     onClick={() => {
                       setResettingUser(p);
-                      setNewPassword('Tracker@2026');
+                      setNewPassword('');
                     }}
                     className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold inline-flex items-center gap-1 border border-slate-700 transition-colors"
                   >

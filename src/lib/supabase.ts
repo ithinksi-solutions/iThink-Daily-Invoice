@@ -7,6 +7,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
+    detectSessionInUrl: false, // Prevents unintended SSO/SAML certificate probes or URL fragment exchanges
+    flowType: 'implicit',
+  },
+  global: {
+    headers: {
+      'x-application-name': 'daily-invoice',
+    },
   },
 });

@@ -15,5 +15,14 @@ services:
         destination: /index.html
     headers:
       - path: /*
+        name: Access-Control-Allow-Origin
+        value: "*"
+      - path: /*
+        name: Access-Control-Allow-Methods
+        value: "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+      - path: /*
+        name: Access-Control-Allow-Headers
+        value: "X-Requested-With, content-type, Authorization, apikey, x-client-info"
+      - path: /*
         name: X-Frame-Options
         value: SAMEORIGIN
