@@ -41,6 +41,12 @@ import {
   ArrowRight,
   Eye,
   SlidersHorizontal,
+  RotateCw,
+  RotateCcw,
+  ZoomOut,
+  ChevronDown,
+  TrendingUp,
+  TrendingDown,
 } from 'lucide-react';
 
 interface AdminDailyPageProps {
@@ -89,8 +95,14 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null);
   const [deleteReason, setDeleteReason] = useState<string>('');
 
-  // Single slip image lightbox preview
+  // Single slip image lightbox preview & inspection suite
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewEntry, setPreviewEntry] = useState<Entry | null>(null);
+  const [previewRotation, setPreviewRotation] = useState<number>(0);
+  const [previewZoom, setPreviewZoom] = useState<number>(1);
+
+  // Operational Yesterday Comparison
+  const [yesterdayTotal, setYesterdayTotal] = useState<number | null>(null);
 
   // Fetch operators list
   useEffect(() => {
@@ -140,6 +152,45 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
   useEffect(() => {
     loadDailyEntries();
   }, [loadDailyEntries]);
+
+  // Operational comparison: fetch previous day total
+  useEffect(() => {
+    async function fetchYesterdayTotal() {
+      try {
+        const d = new Date(selectedDate);
+        d.setDate(d.getDate() - 1);
+        const yDateStr = d.toISOString().split('T')[0];
+
+        const { data: ySheets } = await supabase
+          .from('daily_sheets')
+          .select('id')
+          .eq('sheet_date', yDateStr);
+
+        if (!ySheets || ySheets.length === 0) {
+          setYesterdayTotal(null);
+          return;
+        }
+
+        const yIds = ySheets.map((s) => s.id);
+        const { data: yEntries } = await supabase
+          .from('entries')
+          .select('total_collected')
+          .in('sheet_id', yIds)
+          .eq('is_deleted', false);
+
+        if (yEntries && yEntries.length > 0) {
+          const sum = yEntries.reduce((acc, row) => acc + Number(row.total_collected || 0), 0);
+          setYesterdayTotal(sum);
+        } else {
+          setYesterdayTotal(null);
+        }
+      } catch (err) {
+        console.error('Fetch yesterday total failed:', err);
+        setYesterdayTotal(null);
+      }
+    }
+    fetchYesterdayTotal();
+  }, [selectedDate]);
 
   // Date Navigator Helpers
   const handlePrevDay = () => {
@@ -709,6 +760,31 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
             </div>
           </div>
 
+          {/* Operational Comparison Chip vs Yesterday (Executive 5-Second Story) */}
+          {yesterdayTotal !== null && yesterdayTotal > 0 && (
+            <div
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold ${
+                visibleGrand >= yesterdayTotal
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+              }`}
+              title={`Previous Day: ${formatINR(yesterdayTotal)}`}
+            >
+              {visibleGrand >= yesterdayTotal ? (
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              ) : (
+                <TrendingDown className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              )}
+              <span>
+                {visibleGrand >= yesterdayTotal ? '+' : ''}
+                {(((visibleGrand - yesterdayTotal) / yesterdayTotal) * 100).toFixed(1)}%
+              </span>
+              <span className="text-[10px] text-slate-500 font-normal hidden lg:inline">
+                vs Prev ({formatINR(yesterdayTotal)})
+              </span>
+            </div>
+          )}
+
           {/* Total Balances Owed */}
           {visibleBalOwed > 0 && (
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
@@ -729,45 +805,61 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
           </span>
         </div>
 
-        {/* In-Line Power BI Filter Controls */}
+        {/* In-Line Power BI Filter Controls (Enterprise Styled Slicers) */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Dealer Quick Search */}
+          {/* Dealer Quick Search with Smooth Width Expansion and Clear CTA */}
           <div className="relative">
             <input
               type="text"
               placeholder="Filter dealer..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-32 sm:w-44 px-2 py-1 pl-6 bg-slate-950 border border-slate-800 rounded-md text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              className="w-32 lg:w-44 focus:w-56 transition-all duration-200 px-2.5 py-1 pl-7 pr-6 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
             />
-            <Search className="w-3 h-3 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-white"
+                title="Clear filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
 
-          {/* Operator Dropdown */}
-          <select
-            value={filterOperator}
-            onChange={(e) => setFilterOperator(e.target.value)}
-            className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-md text-[11px] text-white focus:outline-none focus:border-emerald-500"
-          >
-            <option value="ALL">All Operators</option>
-            {operators.map((op) => (
-              <option key={op.id} value={op.id}>
-                {op.full_name}
-              </option>
-            ))}
-          </select>
+          {/* Operator Dropdown with Custom Chevron and Dark Theme Styling */}
+          <div className="relative inline-flex items-center">
+            <select
+              value={filterOperator}
+              onChange={(e) => setFilterOperator(e.target.value)}
+              className="appearance-none pl-2.5 pr-7 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-medium text-slate-200 hover:border-slate-700 focus:outline-none focus:border-emerald-500 cursor-pointer shadow-inner"
+            >
+              <option value="ALL" className="bg-slate-950 text-white">All Operators</option>
+              {operators.map((op) => (
+                <option key={op.id} value={op.id} className="bg-slate-950 text-white">
+                  {op.full_name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
+          </div>
 
-          {/* Mode Dropdown */}
-          <select
-            value={filterMode}
-            onChange={(e) => setFilterMode(e.target.value)}
-            className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-md text-[11px] text-white focus:outline-none focus:border-emerald-500 hidden sm:inline-block"
-          >
-            <option value="ALL">All Modes</option>
-            <option value="CASH_ONLY">Cash Only</option>
-            <option value="PHONEPE_ONLY">PhonePe Only</option>
-            <option value="SPLIT">Split Only</option>
-          </select>
+          {/* Payment Mode Dropdown with Custom Chevron */}
+          <div className="relative hidden sm:inline-flex items-center">
+            <select
+              value={filterMode}
+              onChange={(e) => setFilterMode(e.target.value)}
+              className="appearance-none pl-2.5 pr-7 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-medium text-slate-200 hover:border-slate-700 focus:outline-none focus:border-emerald-500 cursor-pointer shadow-inner"
+            >
+              <option value="ALL" className="bg-slate-950 text-white">All Modes</option>
+              <option value="CASH_ONLY" className="bg-slate-950 text-white">Cash Only</option>
+              <option value="PHONEPE_ONLY" className="bg-slate-950 text-white">PhonePe Only</option>
+              <option value="SPLIT" className="bg-slate-950 text-white">Split Only</option>
+            </select>
+            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
+          </div>
         </div>
 
       </div>
@@ -987,9 +1079,14 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
                         {e.image_url ? (
                           <button
                             type="button"
-                            onClick={() => setPreviewImageUrl(e.image_url)}
+                            onClick={() => {
+                              setPreviewImageUrl(e.image_url);
+                              setPreviewEntry(e);
+                              setPreviewRotation(0);
+                              setPreviewZoom(1);
+                            }}
                             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 hover:bg-teal-500/25 transition-all text-[11px] font-bold"
-                            title="Click to view full slip"
+                            title="Click to inspect full slip"
                           >
                             <img
                               src={e.image_url}
@@ -1119,17 +1216,23 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
                         {e.image_url && (
                           <button
                             type="button"
-                            onClick={() => setPreviewImageUrl(e.image_url)}
-                            className="p-1 px-2 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[11px] font-bold flex items-center gap-1"
+                            onClick={() => {
+                              setPreviewImageUrl(e.image_url);
+                              setPreviewEntry(e);
+                              setPreviewRotation(0);
+                              setPreviewZoom(1);
+                            }}
+                            className="min-h-[34px] px-2.5 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[11px] font-bold flex items-center gap-1 active:scale-95 transition-all"
+                            title="Inspect Slip"
                           >
-                            <ImageIcon className="w-3 h-3" />
+                            <ImageIcon className="w-3.5 h-3.5" />
                             <span>Slip</span>
                           </button>
                         )}
                         <button
                           type="button"
                           onClick={() => handleStartEdit(e)}
-                          className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-emerald-400"
+                          className="min-w-[34px] min-h-[34px] rounded-xl bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-emerald-400 flex items-center justify-center active:scale-95 transition-all"
                           title="Edit"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -1140,7 +1243,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
                             setDeletingEntry(e);
                             setDeleteReason('');
                           }}
-                          className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-rose-400"
+                          className="min-w-[34px] min-h-[34px] rounded-xl bg-slate-800/80 border border-rose-500/30 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 flex items-center justify-center active:scale-95 transition-all ml-0.5"
                           title="Delete"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1259,34 +1362,120 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
         operators={operators}
       />
 
-      {/* SINGLE IMAGE LIGHTBOX MODAL */}
+      {/* ENTERPRISE SLIP INSPECTION SUITE (WITH ROTATION & ZOOM) */}
       {previewImageUrl && (
-        <div className="fixed inset-0 z-60 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
-          <div className="relative max-w-3xl max-h-[90vh] flex flex-col items-center">
-            <button
-              type="button"
-              onClick={() => setPreviewImageUrl(null)}
-              className="absolute -top-12 right-0 p-2 text-white bg-slate-800/80 rounded-full hover:bg-slate-700"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <img
-              src={previewImageUrl}
-              alt="Bill Slip"
-              className="max-h-[80vh] w-auto max-w-full rounded-2xl object-contain border border-slate-800 shadow-2xl"
-            />
-            <div className="mt-3 flex items-center gap-3">
+        <div className="fixed inset-0 z-60 bg-black/95 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6">
+          <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+            
+            {/* Workbench Top Bar */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-950/90">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-teal-400"></span>
+                <div>
+                  <h3 className="text-xs font-bold text-white flex items-center gap-2">
+                    <span>{previewEntry?.dealer_name || 'Physical Slip Proof'}</span>
+                    {previewEntry && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        {formatINR(previewEntry.total_collected)}
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-mono">
+                    {previewEntry?.business_name} • Logged at {previewEntry?.created_at ? formatAppTime(previewEntry.created_at) : 'Today'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Inspection Controls: Rotate 90°, Zoom, Reset, Close */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPreviewRotation((r) => (r + 90) % 360)}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700/80"
+                  title="Rotate 90° Clockwise"
+                >
+                  <RotateCw className="w-3.5 h-3.5 text-teal-400" />
+                  <span className="hidden sm:inline">Rotate 90°</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom((z) => Math.min(z + 0.25, 3))}
+                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-slate-700/80"
+                  title="Zoom In"
+                >
+                  <ZoomIn className="w-4 h-4 text-emerald-400" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom((z) => Math.max(z - 0.25, 0.5))}
+                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-slate-700/80"
+                  title="Zoom Out"
+                >
+                  <ZoomOut className="w-4 h-4 text-slate-300" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreviewRotation(0);
+                    setPreviewZoom(1);
+                  }}
+                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors border border-slate-700/80"
+                  title="Reset View"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+
+                <div className="h-4 w-px bg-slate-800 mx-1"></div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreviewImageUrl(null);
+                    setPreviewEntry(null);
+                  }}
+                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors border border-slate-700/80"
+                  title="Close Inspector"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Slip Image Viewport with Transform */}
+            <div className="flex-1 overflow-hidden min-h-[350px] max-h-[70vh] flex items-center justify-center p-4 bg-slate-950/90 relative">
+              <img
+                src={previewImageUrl}
+                alt="Bill Slip"
+                style={{
+                  transform: `rotate(${previewRotation}deg) scale(${previewZoom})`,
+                  transition: 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
+                }}
+                className="max-h-[65vh] w-auto max-w-full rounded-xl object-contain shadow-2xl select-none"
+              />
+            </div>
+
+            {/* Workbench Footer Bar */}
+            <div className="px-4 py-2.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 text-slate-400">
+                <span className="font-mono">Zoom: {Math.round(previewZoom * 100)}%</span>
+                <span>•</span>
+                <span className="font-mono">Angle: {previewRotation}°</span>
+              </div>
               <a
                 href={previewImageUrl}
                 target="_blank"
                 rel="noreferrer"
                 download={`Slip_${selectedDate}.jpg`}
-                className="px-4 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 hover:brightness-110"
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Download High-Res Slip</span>
+                <span>Download Proof</span>
               </a>
             </div>
+
           </div>
         </div>
       )}
