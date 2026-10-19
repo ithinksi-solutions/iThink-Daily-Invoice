@@ -7,3 +7,13 @@ dist/
 .DS_Store
 dist-ssr/
 *.local
+
+# Android & Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/app/*.iml
+
