@@ -64,6 +64,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
   const [entries, setEntries] = useState<Entry[]>([]);
   const [operators, setOperators] = useState<Profile[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [mobileVisibleCount, setMobileVisibleCount] = useState<number>(30);
 
   // Modals state
   const [isBackupOpen, setIsBackupOpen] = useState<boolean>(false);
@@ -884,11 +885,11 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
         ) : (
           <>
             {/* Desktop Table View (Power BI Financial Data Grid) */}
-            <div className="hidden md:block border border-slate-800 rounded-2xl overflow-hidden shadow-2xl bg-slate-900/80 backdrop-blur-sm">
+            <div className="hidden md:block border border-slate-800 rounded-2xl shadow-2xl bg-slate-900/80 backdrop-blur-sm overflow-y-auto max-h-[calc(100dvh-155px)]">
             <table className="w-full text-left border-collapse text-xs">
               
               {/* Sticky Table Header */}
-              <thead className="sticky top-0 z-10 bg-slate-950 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <thead className="sticky top-0 z-20 bg-slate-950 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 backdrop-blur-md">
                 <tr>
                   <th className="py-2.5 px-3 text-center w-10">#</th>
                   <th className="py-2.5 px-3">Time</th>
@@ -1045,7 +1046,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
               </tbody>
 
               {/* Table Footer with Pinned Column Sums */}
-              <tfoot className="sticky bottom-0 bg-slate-950 border-t-2 border-slate-800 font-bold text-xs">
+              <tfoot className="sticky bottom-0 z-20 bg-slate-950 border-t-2 border-slate-800 font-bold text-xs backdrop-blur-md">
                 <tr>
                   <td colSpan={5} className="py-2.5 px-3 text-right uppercase tracking-wider text-slate-400">
                     Day Totals ({filteredEntries.length} Records):
@@ -1071,7 +1072,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
 
             {/* Mobile Card List View for Admin (Touch-Optimized Revolut Style) */}
             <div className="md:hidden space-y-2.5 pb-6">
-              {filteredEntries.map((e) => {
+              {(searchQuery.trim() ? filteredEntries : filteredEntries.slice(0, mobileVisibleCount)).map((e) => {
                 const op = operators.find((o) => o.id === e.collector_id);
                 return (
                   <div
@@ -1149,6 +1150,25 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
                   </div>
                 );
               })}
+
+              {!searchQuery.trim() && filteredEntries.length > mobileVisibleCount && (
+                <div className="pt-3 pb-2 flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMobileVisibleCount((prev) => prev + 50)}
+                    className="w-full py-3 rounded-2xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 text-emerald-400 font-black text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99]"
+                  >
+                    <span>Load 50 More (Showing {Math.min(mobileVisibleCount, filteredEntries.length)} of {filteredEntries.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMobileVisibleCount(filteredEntries.length)}
+                    className="text-xs text-slate-400 hover:text-white font-semibold underline py-1"
+                  >
+                    Show All {filteredEntries.length} Collections
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}
