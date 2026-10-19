@@ -7,6 +7,9 @@ on:
       - dev
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-apk:
     name: Build Android Debug APK
@@ -28,11 +31,11 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Accept Android SDK Licenses
+        run: yes | sdkmanager --licenses || true
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci || npm install
 
       - name: Build Web Application
         run: npm run build
@@ -53,3 +56,16 @@ jobs:
           name: DailyInvoice-Android-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
+
+      - name: Release Latest APK
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: latest-apk
+          name: "Daily Invoice Latest Android APK"
+          body: "Latest automated Capacitor Android APK build for Daily Invoice (STAR & ARBO PLAST)."
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
