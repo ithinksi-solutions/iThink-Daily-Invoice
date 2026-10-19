@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { Camera, Upload, X, Check, Loader2, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 
 interface ImageCaptureProps {
   onImageUploaded: (url: string) => void;
@@ -63,20 +65,15 @@ export const ImageCapture: React.FC<ImageCaptureProps> = ({
     });
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
+  // Upload blob directly to Supabase Storage
+  const uploadBlob = async (blob: Blob) => {
+    if (!user) return;
+    setUploading(true);
     try {
-      setUploading(true);
-      // 1. Compress image
-      const compressedBlob = await compressImage(file);
-      
-      // 2. Upload to Supabase Storage
       const fileName = `${user.id}/${Date.now()}_slip.jpg`;
       const { data, error } = await supabase.storage
         .from('bill-slips')
-        .upload(fileName, compressedBlob, {
+        .upload(fileName, blob, {
           contentType: 'image/jpeg',
           upsert: true,
         });
@@ -84,11 +81,9 @@ export const ImageCapture: React.FC<ImageCaptureProps> = ({
       if (error) {
         console.error('Storage upload error:', error);
         alert('Failed to upload slip image: ' + error.message);
-        setUploading(false);
         return;
       }
 
-      // 3. Get Public URL
       const { data: urlData } = supabase.storage
         .from('bill-slips')
         .getPublicUrl(data.path);
@@ -96,11 +91,59 @@ export const ImageCapture: React.FC<ImageCaptureProps> = ({
       const publicUrl = urlData.publicUrl;
       setPreview(publicUrl);
       onImageUploaded(publicUrl);
+    } catch (err: any) {
+      console.error('Image upload failed:', err);
+      alert('Error uploading image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    try {
+      setUploading(true);
+      const compressedBlob = await compressImage(file);
+      await uploadBlob(compressedBlob);
     } catch (err) {
       console.error('Image compression/upload failed:', err);
       alert('Error uploading image');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleNativeCamera = async (source: CameraSource) => {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const photo = await CapCamera.getPhoto({
+          quality: 85,
+          allowEditing: false,
+          resultType: CameraResultType.Uri,
+          source,
+        });
+
+        if (photo.webPath) {
+          const response = await fetch(photo.webPath);
+          const blob = await response.blob();
+          await uploadBlob(blob);
+          return;
+        }
+      }
+    } catch (err: any) {
+      if (err?.message?.includes('User cancelled') || err?.message?.includes('canceled')) {
+        return;
+      }
+      console.warn('Native camera failed, falling back to web file input:', err);
+    }
+
+    // Fallback to web input
+    if (source === CameraSource.Camera) {
+      cameraInputRef.current?.click();
+    } else {
+      galleryInputRef.current?.click();
     }
   };
 
@@ -113,7 +156,7 @@ export const ImageCapture: React.FC<ImageCaptureProps> = ({
 
   return (
     <div className="w-full">
-      {/* Hidden inputs: Camera (environment capture) vs Gallery (file picker) */}
+      {/* Hidden inputs: Fallback file pickers */}
       <input
         ref={cameraInputRef}
         type="file"
@@ -149,7 +192,7 @@ export const ImageCapture: React.FC<ImageCaptureProps> = ({
           <button
             type="button"
             onClick={handleRemove}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors shrink-0 ml-2"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors shrink-0 ml-2"
             title="Remove Slip"
           >
             <X className="w-5 h-5" />
@@ -161,8 +204,8 @@ export const ImageCapture: React.FC<ImageCaptureProps> = ({
           <button
             type="button"
             disabled={uploading}
-            onClick={() => cameraInputRef.current?.click()}
-            className="p-3 rounded-xl border border-dashed border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500 text-slate-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+            onClick={() => handleNativeCamera(CameraSource.Camera)}
+            className="min-h-[48px] p-3 rounded-xl border border-dashed border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500 text-slate-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
           >
             {uploading ? (
               <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
@@ -176,8 +219,8 @@ export const ImageCapture: React.FC<ImageCaptureProps> = ({
           <button
             type="button"
             disabled={uploading}
-            onClick={() => galleryInputRef.current?.click()}
-            className="p-3 rounded-xl border border-dashed border-slate-700 bg-slate-900 hover:bg-slate-800 hover:border-slate-600 text-slate-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+            onClick={() => handleNativeCamera(CameraSource.Photos)}
+            className="min-h-[48px] p-3 rounded-xl border border-dashed border-slate-700 bg-slate-900 hover:bg-slate-800 hover:border-slate-600 text-slate-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
           >
             {uploading ? (
               <Loader2 className="w-4 h-4 animate-spin text-teal-400" />

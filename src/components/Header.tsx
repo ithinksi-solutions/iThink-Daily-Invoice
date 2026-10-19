@@ -27,10 +27,10 @@ export const Header: React.FC<HeaderProps> = ({ currentTab = 'daily', onTabChang
   }, []);
 
   return (
-    <header className="h-12 border-b border-slate-800 bg-slate-950/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-30">
+    <header className="min-h-[48px] safe-pt border-b border-slate-800 bg-slate-950/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-30">
       
       {/* Brand & 1-Line Title */}
-      <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-center gap-2.5 min-w-0 py-1.5">
         <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xs shrink-0">
           ₹
         </div>
@@ -48,15 +48,15 @@ export const Header: React.FC<HeaderProps> = ({ currentTab = 'daily', onTabChang
       </div>
 
       {/* Right Controls: Compact Language + Signout */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0 py-1">
         {/* Language Switcher Pill */}
-        <div className="bg-slate-900 border border-slate-800 rounded-lg p-0.5 flex items-center shadow-inner">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-0.5 flex items-center shadow-inner">
           <button
             type="button"
             onClick={() => setLanguage('en')}
-            className={`px-2 py-0.5 text-[11px] font-bold rounded transition-all ${
+            className={`min-h-[36px] px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
               language === 'en'
-                ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                ? 'bg-emerald-500 text-slate-950 shadow-sm font-black'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -65,9 +65,9 @@ export const Header: React.FC<HeaderProps> = ({ currentTab = 'daily', onTabChang
           <button
             type="button"
             onClick={() => setLanguage('te')}
-            className={`px-2 py-0.5 text-[11px] font-bold rounded transition-all ${
+            className={`min-h-[36px] px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
               language === 'te'
-                ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                ? 'bg-emerald-500 text-slate-950 shadow-sm font-black'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -75,14 +75,14 @@ export const Header: React.FC<HeaderProps> = ({ currentTab = 'daily', onTabChang
           </button>
         </div>
 
-        {/* Sign Out Button */}
+        {/* Sign Out Button (Touch target >= 44px) */}
         <button
           type="button"
           onClick={signOut}
           title={t('signOut')}
-          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+          className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
         >
-          <LogOut className="w-3.5 h-3.5" />
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
 

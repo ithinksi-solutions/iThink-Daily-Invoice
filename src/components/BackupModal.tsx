@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatAppDate, formatAppTime } from '../lib/formatters';
 import * as XLSX from 'xlsx';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import {
   X,
   Download,
@@ -24,6 +27,17 @@ interface BackupModalProps {
 
 export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => {
   const [downloading, setDownloading] = useState<string | null>(null);
+
+  // Hardware Back Button Dismissal Listener
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleDismiss = (e: Event) => {
+      e.preventDefault();
+      onClose();
+    };
+    window.addEventListener('dismissActiveModal', handleDismiss);
+    return () => window.removeEventListener('dismissActiveModal', handleDismiss);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -112,7 +126,27 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
       XLSX.utils.book_append_sheet(wb, ws3, 'Business Summary');
 
       const dateTag = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(wb, `iThinkAI_Complete_Backup_${dateTag}.xlsx`);
+      const fileName = `iThinkAI_Complete_Backup_${dateTag}.xlsx`;
+
+      // Native Capacitor File Saving & Sharing
+      if (Capacitor.isNativePlatform()) {
+        const base64Data = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache,
+        });
+        await Share.share({
+          title: 'Daily Invoice Excel Backup',
+          text: `Collection ledger backup for ${dateTag}`,
+          url: savedFile.uri,
+          dialogTitle: 'Save or Share Excel Spreadsheet',
+        });
+        return;
+      }
+
+      // Web Fallback
+      XLSX.writeFile(wb, fileName);
     } catch (err: any) {
       alert('Backup generation error: ' + err.message);
     } finally {
@@ -141,10 +175,32 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
         entries: entriesRes.data || [],
       };
 
-      const jsonStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backupData, null, 2));
+      const dateTag = new Date().toISOString().split('T')[0];
+      const fileName = `iThinkAI_DB_Snapshot_${dateTag}.json`;
+      const jsonContent = JSON.stringify(backupData, null, 2);
+
+      // Native Capacitor File Saving & Sharing
+      if (Capacitor.isNativePlatform()) {
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: jsonContent,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8,
+        });
+        await Share.share({
+          title: 'Daily Invoice DB Snapshot',
+          text: `Database snapshot for ${dateTag}`,
+          url: savedFile.uri,
+          dialogTitle: 'Save or Share Database Backup',
+        });
+        return;
+      }
+
+      // Web Fallback
+      const jsonStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(jsonContent);
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute('href', jsonStr);
-      downloadAnchor.setAttribute('download', `iThinkAI_DB_Snapshot_${new Date().toISOString().split('T')[0]}.json`);
+      downloadAnchor.setAttribute('download', fileName);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -156,8 +212,8 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden max-h-[90dvh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))] animate-in fade-in zoom-in-95 duration-150">
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">

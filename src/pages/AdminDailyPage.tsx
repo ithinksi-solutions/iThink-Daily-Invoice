@@ -307,7 +307,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
   };
 
   return (
-    <div className="h-screen w-screen max-h-screen overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div className="h-[100dvh] w-full min-h-[100dvh] overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between selection:bg-emerald-500/30 selection:text-emerald-300">
       
       {/* TOAST NOTIFICATION */}
       {toastMessage && (
@@ -324,8 +324,8 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
         </div>
       )}
 
-      {/* 1. POWER BI TOP RIBBON (UNIFIED CONTROLS IN 48PX BAR) */}
-      <header className="h-12 border-b border-slate-800 bg-slate-950/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-20">
+      {/* 1. POWER BI TOP RIBBON (UNIFIED CONTROLS IN 48PX BAR + SAFE AREA) */}
+      <header className="min-h-[48px] safe-pt border-b border-slate-800 bg-slate-950/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-20">
         
         {/* Brand & Tab Navigation */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
@@ -449,7 +449,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
             title="Upload physical handwritten slip, extract entries, and verify with Human-In-The-Loop review"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Digitize Slip</span>
+            <span className="hidden sm:inline">{t('digitizeSlip')}</span>
             <span className="sm:hidden">Slip</span>
           </button>
 
@@ -472,7 +472,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
             title="View All Uploaded Slips for this Date"
           >
             <Camera className="w-3.5 h-3.5 text-teal-400" />
-            <span className="hidden lg:inline">Day Slips</span>
+            <span className="hidden lg:inline">{t('daySlips')}</span>
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-black bg-teal-400 text-slate-950">
               {daySlipsCount}
             </span>
@@ -486,7 +486,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
             title="Download Backup & Cloud Sync"
           >
             <Database className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden md:inline">Backup</span>
+            <span className="hidden md:inline">{t('backup')}</span>
           </button>
 
           {/* Export Excel (Desktop) */}
@@ -554,10 +554,10 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
             <button
               type="button"
               onClick={handlePrevDay}
-              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+              className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white"
               title="Previous Day"
             >
-              <ChevronLeft className="w-3.5 h-3.5" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <input
               type="date"
@@ -568,15 +568,15 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
             <button
               type="button"
               onClick={handleNextDay}
-              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+              className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white"
               title="Next Day"
             >
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
             <button
               type="button"
               onClick={handleToday}
-              className="px-2 py-0.5 text-[11px] font-bold rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+              className="px-2.5 py-1 text-[11px] font-bold rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
             >
               Today
             </button>
@@ -817,14 +817,14 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">
-                      Upload Operator Slip
+                      {t('uploadOperatorSlip')}
                     </h4>
                     <p className="text-[11px] text-slate-400 mt-1 leading-snug">
                       Operator handed over paper slip? Upload photo, AI extracts entries, inspect side-by-side, edit and approve to ledger.
                     </p>
                   </div>
                   <div className="flex items-center gap-1 text-xs font-bold text-emerald-400 group-hover:translate-x-1 transition-transform">
-                    <span>Open Slip Digitizer</span>
+                    <span>{t('digitizeSlip')}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </div>
                 </button>
@@ -845,14 +845,14 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-white group-hover:text-slate-200 transition-colors">
-                      Manual Admin Entry
+                      {t('manualAdminEntry')}
                     </h4>
                     <p className="text-[11px] text-slate-400 mt-1 leading-snug">
                       Quickly log a collection entry directly on behalf of any operator without switching accounts.
                     </p>
                   </div>
                   <div className="flex items-center gap-1 text-xs font-bold text-slate-300 group-hover:translate-x-1 transition-transform">
-                    <span>+ Add Single Entry</span>
+                    <span>{t('addNewEntry')}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </div>
                 </button>
@@ -1171,8 +1171,8 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
         </div>
       </footer>
 
-      {/* 5. MOBILE BOTTOM NAVIGATION (52PX - Mobile only) */}
-      <nav className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md px-3 py-1.5 flex items-center justify-around shrink-0 z-30">
+      {/* 5. MOBILE BOTTOM NAVIGATION (52PX + SAFE AREA - Mobile only) */}
+      <nav className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md px-3 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-around shrink-0 z-30">
         <button
           type="button"
           onClick={() => onNavigateTab('daily')}

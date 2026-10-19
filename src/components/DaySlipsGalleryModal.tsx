@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Entry, Profile } from '../types/database';
 import { formatAppDate, formatAppTime, formatINR } from '../lib/formatters';
 import {
@@ -36,6 +36,21 @@ export const DaySlipsGalleryModal: React.FC<DaySlipsGalleryModalProps> = ({
     time: string;
   } | null>(null);
 
+  // Hardware Back Button Dismissal Listener
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleDismiss = (e: Event) => {
+      e.preventDefault();
+      if (activeSlip) {
+        setActiveSlip(null);
+      } else {
+        onClose();
+      }
+    };
+    window.addEventListener('dismissActiveModal', handleDismiss);
+    return () => window.removeEventListener('dismissActiveModal', handleDismiss);
+  }, [isOpen, activeSlip, onClose]);
+
   if (!isOpen) return null;
 
   // Filter entries for this date that have an image_url
@@ -47,7 +62,7 @@ export const DaySlipsGalleryModal: React.FC<DaySlipsGalleryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90dvh] animate-in fade-in zoom-in-95 duration-150">
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50 shrink-0">
@@ -168,7 +183,7 @@ export const DaySlipsGalleryModal: React.FC<DaySlipsGalleryModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs text-slate-500 shrink-0">
+        <div className="px-6 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs text-slate-500 shrink-0">
           <span>{slipEntries.length} verified slip photos for {formatAppDate(selectedDate)}</span>
           <button
             type="button"

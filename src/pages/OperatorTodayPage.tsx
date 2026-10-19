@@ -137,7 +137,7 @@ export const OperatorTodayPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen max-h-screen overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div className="h-[100dvh] w-full min-h-[100dvh] overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between selection:bg-emerald-500/30 selection:text-emerald-300">
       
       {/* 1. STYLISH TOP HEADER (1 LINE: DAILY INVOICE) */}
       <Header />
@@ -341,8 +341,8 @@ export const OperatorTodayPage: React.FC = () => {
         )}
       </main>
 
-      {/* 4. FLOATING BOTTOM CTA (TOUCH-OPTIMIZED 52PX) */}
-      <div className="p-3 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 shrink-0 z-20">
+      {/* 4. FLOATING BOTTOM CTA (TOUCH-OPTIMIZED 52PX + SAFE AREA) */}
+      <div className="p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-slate-950/95 backdrop-blur-md border-t border-slate-800 shrink-0 z-20">
         <div className="max-w-md mx-auto">
           <button
             type="button"

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Profile, BusinessName } from '../types/database';
 import { formatINR, getCurrentISTDateString } from '../lib/formatters';
@@ -30,6 +30,17 @@ export const AdminAddEntryModal: React.FC<AdminAddEntryModalProps> = ({
   
   const [saving, setSaving] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Hardware Back Button Dismissal Listener
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleDismiss = (e: Event) => {
+      e.preventDefault();
+      onClose();
+    };
+    window.addEventListener('dismissActiveModal', handleDismiss);
+    return () => window.removeEventListener('dismissActiveModal', handleDismiss);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -117,7 +128,7 @@ export const AdminAddEntryModal: React.FC<AdminAddEntryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 text-slate-100 space-y-4 animate-in fade-in-50 duration-150">
+      <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-h-[90dvh] overflow-y-auto text-slate-100 space-y-4 animate-in fade-in-50 duration-150">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">

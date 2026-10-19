@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../lib/i18n';
@@ -34,6 +34,17 @@ export const OperatorAddEntryModal: React.FC<AddEntryModalProps> = ({
 
   const [saving, setSaving] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Hardware Back Button Dismissal Listener
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleDismiss = (e: Event) => {
+      e.preventDefault();
+      onClose();
+    };
+    window.addEventListener('dismissActiveModal', handleDismiss);
+    return () => window.removeEventListener('dismissActiveModal', handleDismiss);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -106,7 +117,7 @@ export const OperatorAddEntryModal: React.FC<AddEntryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="relative w-full sm:max-w-lg bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 overflow-hidden max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-6 duration-200">
+      <div className="relative w-full sm:max-w-lg bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-h-[90dvh] overflow-y-auto animate-in slide-in-from-bottom-6 duration-200">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">

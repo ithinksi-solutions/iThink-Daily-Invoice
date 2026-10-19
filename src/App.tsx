@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { OperatorTodayPage } from './pages/OperatorTodayPage';
@@ -6,11 +6,41 @@ import { AdminDailyPage } from './pages/AdminDailyPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { Loader2 } from 'lucide-react';
+import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 export const App: React.FC = () => {
   const { user, role, loading } = useAuth();
   const [adminTab, setAdminTab] = useState<'daily' | 'dashboard' | 'users'>('daily');
   const [drilldownDate, setDrilldownDate] = useState<string | undefined>(undefined);
+
+  // Hardware Android Back Button Handler
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let handler: any = null;
+    CapApp.addListener('backButton', () => {
+      // 1. Check if any active modal or lightbox consumes the back event
+      const modalEvent = new CustomEvent('dismissActiveModal', { cancelable: true });
+      const handled = !window.dispatchEvent(modalEvent);
+      if (handled) return;
+
+      // 2. If in Admin and not on daily, navigate back to daily tab
+      if (role === 'admin' && adminTab !== 'daily') {
+        setAdminTab('daily');
+        return;
+      }
+
+      // 3. Otherwise exit the application cleanly
+      CapApp.exitApp();
+    }).then((h) => {
+      handler = h;
+    });
+
+    return () => {
+      if (handler) handler.remove();
+    };
+  }, [role, adminTab]);
 
   if (loading) {
     return (

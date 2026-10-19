@@ -67,7 +67,7 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
 
         const { data: entries } = await supabase
           .from('entries')
-          .select('*')
+          .select('id, collector_id, sheet_id, cash_amount, phonepe_amount, total_collected, business_name, created_at')
           .eq('is_deleted', false);
 
         const { data: profiles } = await supabase
@@ -196,10 +196,10 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
   };
 
   return (
-    <div className="h-screen w-screen max-h-screen overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div className="h-[100dvh] w-full min-h-[100dvh] overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between selection:bg-emerald-500/30 selection:text-emerald-300">
       
-      {/* 1. POWER BI TOP RIBBON (48PX) */}
-      <header className="h-12 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-20">
+      {/* 1. POWER BI TOP RIBBON (48PX + SAFE AREA) */}
+      <header className="min-h-[48px] safe-pt border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-20">
         
         {/* Brand & Tab Navigation */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
@@ -530,8 +530,8 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
         <span className="font-mono text-slate-400">7-Day Rolling Volume: {formatINR(metrics.thisWeekTotal)}</span>
       </footer>
 
-      {/* 4. MOBILE BOTTOM NAVIGATION (52PX - Mobile only) */}
-      <nav className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md px-3 py-1.5 flex items-center justify-around shrink-0 z-30">
+      {/* 4. MOBILE BOTTOM NAVIGATION (52PX + SAFE AREA - Mobile only) */}
+      <nav className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md px-3 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] flex items-center justify-around shrink-0 z-30">
         <button
           type="button"
           onClick={() => onNavigateTab('daily')}
