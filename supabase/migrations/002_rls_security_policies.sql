@@ -163,7 +163,7 @@ CREATE POLICY "entries_delete_policy"
 ON public.entries
 FOR DELETE
 TO authenticated
-USING (FALSE);
+USING (public.is_admin());
 
 -- -----------------------------------------------------------------------------
 -- 5. RLS Policies: `entry_audit_logs`

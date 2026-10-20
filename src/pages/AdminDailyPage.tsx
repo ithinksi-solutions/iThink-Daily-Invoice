@@ -7,6 +7,7 @@ import { BackupModal } from '../components/BackupModal';
 import { DaySlipsGalleryModal } from '../components/DaySlipsGalleryModal';
 import { AdminSlipDigitizerModal } from '../components/AdminSlipDigitizerModal';
 import { AdminAddEntryModal } from '../components/AdminAddEntryModal';
+import { AdminRangeDeleteModal } from '../components/AdminRangeDeleteModal';
 import { formatAppDate, formatAppTime, formatINR, getCurrentISTDateString } from '../lib/formatters';
 import * as XLSX from 'xlsx';
 import {
@@ -47,19 +48,38 @@ import {
   ChevronDown,
   TrendingUp,
   TrendingDown,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  ArrowLeft,
+  CalendarX,
 } from 'lucide-react';
+
+export type SortField = 'created_at' | 'collector' | 'business_name' | 'dealer_name' | 'cash_amount' | 'phonepe_amount' | 'total_collected' | 'balance_owed';
+export type SortOrder = 'asc' | 'desc';
 
 interface AdminDailyPageProps {
   onNavigateTab: (tab: 'daily' | 'dashboard' | 'users') => void;
   initialDate?: string;
+  isDrilldown?: boolean;
+  onClearDrilldown?: () => void;
 }
 
-export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, initialDate }) => {
+export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
+  onNavigateTab,
+  initialDate,
+  isDrilldown,
+  onClearDrilldown,
+}) => {
   const { user, profile, signOut } = useAuth();
   const { language, setLanguage, t } = useLanguage();
 
   const [selectedDate, setSelectedDate] = useState<string>(initialDate || getCurrentISTDateString());
   const [selectedBusiness, setSelectedBusiness] = useState<'ALL' | 'STAR' | 'ARBO PLAST'>('ALL');
+
+  // Interactive Sorting State
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -74,9 +94,27 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
 
   // Modals state
   const [isBackupOpen, setIsBackupOpen] = useState<boolean>(false);
+  const [isRangeDeleteOpen, setIsRangeDeleteOpen] = useState<boolean>(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState<boolean>(false);
   const [isDigitizerOpen, setIsDigitizerOpen] = useState<boolean>(false);
   const [isAddEntryOpen, setIsAddEntryOpen] = useState<boolean>(false);
+
+  // Sync initialDate on incoming drilldown navigation
+  useEffect(() => {
+    if (initialDate && initialDate !== selectedDate) {
+      setSelectedDate(initialDate);
+    }
+  }, [initialDate]);
+
+  // Toggle Column Sort
+  const handleToggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder(field === 'created_at' ? 'desc' : 'asc');
+    }
+  };
 
   // Notification Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -234,6 +272,35 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
     if (filterMode === 'PHONEPE_ONLY' && (e.phonepe_amount === 0 || e.cash_amount > 0)) return false;
     if (filterMode === 'SPLIT' && (e.cash_amount === 0 || e.phonepe_amount === 0)) return false;
     return true;
+  });
+
+  // Sorted Entries (multi-column interactive sorting)
+  const sortedEntries = [...filteredEntries].sort((a, b) => {
+    let valA: any = a[sortField as keyof Entry];
+    let valB: any = b[sortField as keyof Entry];
+
+    if (sortField === 'collector') {
+      const opA = operators.find((o) => o.id === a.collector_id)?.full_name || '';
+      const opB = operators.find((o) => o.id === b.collector_id)?.full_name || '';
+      valA = opA.toLowerCase();
+      valB = opB.toLowerCase();
+    } else if (sortField === 'total_collected') {
+      valA = (Number(a.cash_amount) || 0) + (Number(a.phonepe_amount) || 0);
+      valB = (Number(b.cash_amount) || 0) + (Number(b.phonepe_amount) || 0);
+    } else if (sortField === 'cash_amount' || sortField === 'phonepe_amount' || sortField === 'balance_owed') {
+      valA = Number(valA) || 0;
+      valB = Number(valB) || 0;
+    } else if (typeof valA === 'string') {
+      valA = valA.toLowerCase();
+      valB = (valB || '').toLowerCase();
+    }
+
+    if (valA === null || valA === undefined) valA = 0;
+    if (valB === null || valB === undefined) valB = 0;
+
+    if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+    if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
   });
 
   const visibleCash = filteredEntries.reduce((acc, curr) => acc + (curr.cash_amount || 0), 0);
@@ -534,11 +601,22 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
           <button
             type="button"
             onClick={() => setIsBackupOpen(true)}
-            className="hidden sm:flex px-2 sm:px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 text-xs font-bold items-center gap-1.5 transition-all shadow-sm"
+            className="hidden sm:flex px-2 sm:px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
             title="Download Backup & Cloud Sync"
           >
             <Database className="w-3.5 h-3.5 text-indigo-400" />
             <span className="hidden md:inline">{t('backup')}</span>
+          </button>
+
+          {/* Custom Date Range Purge Button (Admin Only) */}
+          <button
+            type="button"
+            onClick={() => setIsRangeDeleteOpen(true)}
+            className="hidden sm:flex px-2 sm:px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 hover:bg-rose-500/25 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            title="Purge / Delete Records by Date Range"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+            <span className="hidden xl:inline">Purge Range</span>
           </button>
 
           {/* Export Excel (Desktop) */}
@@ -596,6 +674,31 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
         </div>
 
       </header>
+
+      {/* ANALYTICS DRILL-THROUGH BANNER */}
+      {isDrilldown && (
+        <div className="bg-gradient-to-r from-purple-950/90 via-slate-900 to-slate-950 border-b border-purple-500/40 px-3 sm:px-4 py-2 flex items-center justify-between gap-3 text-xs shrink-0 z-20 shadow-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/25 text-purple-300 border border-purple-500/40 shrink-0">
+              Analytics Drill-Through
+            </span>
+            <span className="text-slate-300 truncate text-[11px] sm:text-xs">
+              Inspecting ledger for <strong className="text-white font-mono">{selectedDate}</strong> ({filteredEntries.length} collections • {formatINR(visibleGrand)})
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (onClearDrilldown) onClearDrilldown();
+              onNavigateTab('dashboard');
+            }}
+            className="px-3 py-1.5 rounded-lg bg-purple-500 hover:bg-purple-400 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-all shadow-md shadow-purple-500/20 shrink-0 cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 stroke-[3]" />
+            <span>Return to Analytics</span>
+          </button>
+        </div>
+      )}
 
       {/* MOBILE CONTROLS & DATE NAV BAR (md:hidden) */}
       <div className="md:hidden bg-slate-900/95 border-b border-slate-800 px-3 py-2 space-y-2 shrink-0 z-10">
@@ -715,6 +818,26 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
                 {op.full_name}
               </option>
             ))}
+          </select>
+
+          <select
+            value={`${sortField}-${sortOrder}`}
+            onChange={(e) => {
+              const [f, o] = e.target.value.split('-') as [SortField, SortOrder];
+              setSortField(f);
+              setSortOrder(o);
+            }}
+            className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-md text-[11px] text-emerald-400 font-bold focus:outline-none focus:border-emerald-500"
+            title="Sort records"
+          >
+            <option value="created_at-desc">Sort: Newest</option>
+            <option value="created_at-asc">Sort: Oldest</option>
+            <option value="dealer_name-asc">Sort: Dealer (A-Z)</option>
+            <option value="dealer_name-desc">Sort: Dealer (Z-A)</option>
+            <option value="total_collected-desc">Sort: High ₹</option>
+            <option value="total_collected-asc">Sort: Low ₹</option>
+            <option value="cash_amount-desc">Sort: Cash</option>
+            <option value="phonepe_amount-desc">Sort: PhonePe</option>
           </select>
         </div>
 
@@ -974,17 +1097,139 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
             <table className="w-full text-left border-collapse text-xs">
               
               {/* Sticky Table Header */}
-              <thead className="sticky top-0 z-20 bg-slate-950 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 backdrop-blur-md">
+              {/* Sticky Table Header (Interactive Column Sorting) */}
+              <thead className="sticky top-0 z-20 bg-slate-950 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 backdrop-blur-md select-none">
                 <tr>
                   <th className="py-2.5 px-3 text-center w-10">#</th>
-                  <th className="py-2.5 px-3">Time</th>
-                  <th className="py-2.5 px-3">Operator</th>
-                  <th className="py-2.5 px-3">Business</th>
-                  <th className="py-2.5 px-3">Dealer / Shop Name</th>
-                  <th className="py-2.5 px-3 text-right">Cash (₹)</th>
-                  <th className="py-2.5 px-3 text-right">PhonePe (₹)</th>
-                  <th className="py-2.5 px-3 text-right">Total (₹)</th>
-                  <th className="py-2.5 px-3 text-right">Bal Owed</th>
+
+                  {/* Time */}
+                  <th
+                    onClick={() => handleToggleSort('created_at')}
+                    className="py-2.5 px-3 cursor-pointer hover:text-white transition-colors"
+                    title="Click to sort by Time"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Time</span>
+                      {sortField === 'created_at' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-emerald-400" /> : <ArrowDown className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 hover:text-slate-400" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* Operator */}
+                  <th
+                    onClick={() => handleToggleSort('collector')}
+                    className="py-2.5 px-3 cursor-pointer hover:text-white transition-colors"
+                    title="Click to sort by Operator"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Operator</span>
+                      {sortField === 'collector' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-emerald-400" /> : <ArrowDown className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 hover:text-slate-400" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* Business */}
+                  <th
+                    onClick={() => handleToggleSort('business_name')}
+                    className="py-2.5 px-3 cursor-pointer hover:text-white transition-colors"
+                    title="Click to sort by Business"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Business</span>
+                      {sortField === 'business_name' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-emerald-400" /> : <ArrowDown className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 hover:text-slate-400" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* Dealer / Shop Name */}
+                  <th
+                    onClick={() => handleToggleSort('dealer_name')}
+                    className="py-2.5 px-3 cursor-pointer hover:text-white transition-colors"
+                    title="Click to sort by Dealer Name"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Dealer / Shop Name</span>
+                      {sortField === 'dealer_name' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-emerald-400" /> : <ArrowDown className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 hover:text-slate-400" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* Cash (₹) */}
+                  <th
+                    onClick={() => handleToggleSort('cash_amount')}
+                    className="py-2.5 px-3 text-right cursor-pointer hover:text-white transition-colors"
+                    title="Click to sort by Cash Amount"
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      <span>Cash (₹)</span>
+                      {sortField === 'cash_amount' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-emerald-400" /> : <ArrowDown className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 hover:text-slate-400" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* PhonePe (₹) */}
+                  <th
+                    onClick={() => handleToggleSort('phonepe_amount')}
+                    className="py-2.5 px-3 text-right cursor-pointer hover:text-white transition-colors"
+                    title="Click to sort by PhonePe Amount"
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      <span>PhonePe (₹)</span>
+                      {sortField === 'phonepe_amount' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-purple-400" /> : <ArrowDown className="w-3 h-3 text-purple-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 hover:text-slate-400" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* Total (₹) */}
+                  <th
+                    onClick={() => handleToggleSort('total_collected')}
+                    className="py-2.5 px-3 text-right cursor-pointer hover:text-white transition-colors"
+                    title="Click to sort by Total Amount"
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      <span>Total (₹)</span>
+                      {sortField === 'total_collected' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-teal-400" /> : <ArrowDown className="w-3 h-3 text-teal-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 hover:text-slate-400" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* Bal Owed */}
+                  <th
+                    onClick={() => handleToggleSort('balance_owed')}
+                    className="py-2.5 px-3 text-right cursor-pointer hover:text-white transition-colors"
+                    title="Click to sort by Balance Owed"
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      <span>Bal Owed</span>
+                      {sortField === 'balance_owed' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-amber-400" /> : <ArrowDown className="w-3 h-3 text-amber-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 hover:text-slate-400" />
+                      )}
+                    </div>
+                  </th>
+
                   <th className="py-2.5 px-3 text-center">Slip Proof</th>
                   <th className="py-2.5 px-3">Note / Audit</th>
                   <th className="py-2.5 px-3 text-center">Status</th>
@@ -994,7 +1239,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
 
               {/* Table Body */}
               <tbody className="divide-y divide-slate-800/80 font-medium">
-                {filteredEntries.map((e, idx) => {
+                {sortedEntries.map((e, idx) => {
                   const op = operators.find((o) => o.id === e.collector_id);
                   return (
                     <tr
@@ -1162,7 +1407,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
 
             {/* Mobile Card List View for Admin (Touch-Optimized Revolut Style) */}
             <div className="md:hidden space-y-2.5 pb-6">
-              {(searchQuery.trim() ? filteredEntries : filteredEntries.slice(0, mobileVisibleCount)).map((e) => {
+              {(searchQuery.trim() ? sortedEntries : sortedEntries.slice(0, mobileVisibleCount)).map((e) => {
                 const op = operators.find((o) => o.id === e.collector_id);
                 return (
                   <div
@@ -1344,6 +1589,17 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
       <BackupModal
         isOpen={isBackupOpen}
         onClose={() => setIsBackupOpen(false)}
+      />
+
+      {/* DATE RANGE MAINTENANCE & PURGE MODAL (ADMIN ONLY) */}
+      <AdminRangeDeleteModal
+        isOpen={isRangeDeleteOpen}
+        onClose={() => setIsRangeDeleteOpen(false)}
+        onSuccess={(deletedCount) => {
+          showToast(`Successfully purged ${deletedCount} records across selected date range.`);
+          loadDailyEntries();
+        }}
+        operators={operators}
       />
 
       {/* DAY SLIPS GALLERY MODAL */}

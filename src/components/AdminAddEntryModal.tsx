@@ -42,6 +42,13 @@ export const AdminAddEntryModal: React.FC<AdminAddEntryModalProps> = ({
     return () => window.removeEventListener('dismissActiveModal', handleDismiss);
   }, [isOpen, onClose]);
 
+  // Sync default operator if not yet set
+  useEffect(() => {
+    if (!operatorId && operators.length > 0) {
+      setOperatorId(operators[0].id);
+    }
+  }, [operators, operatorId]);
+
   if (!isOpen) return null;
 
   const numCash = parseFloat(cashAmount) || 0;

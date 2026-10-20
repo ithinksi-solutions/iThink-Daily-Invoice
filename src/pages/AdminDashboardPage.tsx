@@ -192,7 +192,6 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
 
   const handleDrilldown = (dateStr: string) => {
     onSelectDate(dateStr);
-    onNavigateTab('daily');
   };
 
   return (
@@ -298,6 +297,9 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
           {/* Card 1: Today */}
           <div
             onClick={() => handleDrilldown(todayIST)}
+            role="button"
+            tabIndex={0}
+            title="Inspect Today's Ledger"
             className="p-3 rounded-xl bg-slate-900/90 border border-emerald-500/40 hover:border-emerald-400 cursor-pointer transition-all flex flex-col justify-between"
           >
             <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold uppercase tracking-wider">
@@ -327,6 +329,9 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
               y.setDate(y.getDate() - 1);
               handleDrilldown(toISODateString(y));
             }}
+            role="button"
+            tabIndex={0}
+            title="Inspect Yesterday's Ledger"
             className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 cursor-pointer transition-all flex flex-col justify-between"
           >
             <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold uppercase tracking-wider">

@@ -13,6 +13,7 @@ export const App: React.FC = () => {
   const { user, role, loading } = useAuth();
   const [adminTab, setAdminTab] = useState<'daily' | 'dashboard' | 'users'>('daily');
   const [drilldownDate, setDrilldownDate] = useState<string | undefined>(undefined);
+  const [isDrilldown, setIsDrilldown] = useState<boolean>(false);
 
   // Hardware Android Back Button Handler
   useEffect(() => {
@@ -27,6 +28,7 @@ export const App: React.FC = () => {
 
       // 2. If in Admin and not on daily, navigate back to daily tab
       if (role === 'admin' && adminTab !== 'daily') {
+        setIsDrilldown(false);
         setAdminTab('daily');
         return;
       }
@@ -67,9 +69,13 @@ export const App: React.FC = () => {
   if (adminTab === 'dashboard') {
     return (
       <AdminDashboardPage
-        onNavigateTab={setAdminTab}
+        onNavigateTab={(tab) => {
+          setIsDrilldown(false);
+          setAdminTab(tab);
+        }}
         onSelectDate={(dStr) => {
           setDrilldownDate(dStr);
+          setIsDrilldown(true);
           setAdminTab('daily');
         }}
       />
@@ -77,14 +83,26 @@ export const App: React.FC = () => {
   }
 
   if (adminTab === 'users') {
-    return <AdminUsersPage onNavigateTab={setAdminTab} />;
+    return (
+      <AdminUsersPage
+        onNavigateTab={(tab) => {
+          setIsDrilldown(false);
+          setAdminTab(tab);
+        }}
+      />
+    );
   }
 
   // Default Admin tab: Daily View
   return (
     <AdminDailyPage
-      onNavigateTab={setAdminTab}
+      onNavigateTab={(tab) => {
+        setIsDrilldown(false);
+        setAdminTab(tab);
+      }}
       initialDate={drilldownDate}
+      isDrilldown={isDrilldown}
+      onClearDrilldown={() => setIsDrilldown(false)}
     />
   );
 };
