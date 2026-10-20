@@ -962,13 +962,6 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({ onNavigateTab, i
                 >
                   Today
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedDate('2026-10-07')}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold hover:bg-emerald-500/20"
-                >
-                  07-Oct-2026 (Client Handover Slip)
-                </button>
               </div>
 
             </div>

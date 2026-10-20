@@ -5,7 +5,6 @@ import { useLanguage } from '../lib/i18n';
 import {
   parseSlipImage,
   ParsedSlipEntry,
-  CLIENT_HANDWRITTEN_SAMPLE_ENTRIES,
 } from '../lib/slipParser';
 import { formatINR, getCurrentISTDateString } from '../lib/formatters';
 import {
@@ -49,8 +48,7 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
   const { t } = useLanguage();
   const [selectedOperatorId, setSelectedOperatorId] = useState<string>('');
   const [targetDate, setTargetDate] = useState<string>(initialDate || getCurrentISTDateString());
-  const [imageUrl, setImageUrl] = useState<string>('/samples/sample_slip.jpg');
-  const [isSampleLoaded, setIsSampleLoaded] = useState<boolean>(true);
+  const [imageUrl, setImageUrl] = useState<string>('');
   
   // Image viewer state
   const [rotation, setRotation] = useState<number>(0);
@@ -75,13 +73,6 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
     }
   }, [operators, selectedOperatorId]);
 
-  // Initial parse of default sample slip when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      handleParseImage('/samples/sample_slip.jpg', true);
-    }
-  }, [isOpen]);
-
   // Hardware Back Button Dismissal Listener
   useEffect(() => {
     if (!isOpen) return;
@@ -95,16 +86,13 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
 
   if (!isOpen) return null;
 
-  const handleParseImage = async (src: string, isSample: boolean = false) => {
+  const handleParseImage = async (src: string) => {
     setIsProcessing(true);
     setErrorMessage(null);
     try {
-      const result = await parseSlipImage(src, isSample);
+      const result = await parseSlipImage(src);
       setEntries(result.detectedEntries);
       setParseNotes(result.notes);
-      if (isSample) {
-        setTargetDate(result.slipDate);
-      }
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to parse slip image');
     } finally {
@@ -118,18 +106,9 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
 
     const localUrl = URL.createObjectURL(file);
     setImageUrl(localUrl);
-    setIsSampleLoaded(false);
     setRotation(0);
     setZoom(1);
-    handleParseImage(localUrl, false);
-  };
-
-  const handleLoadSampleSlip = () => {
-    setImageUrl('/samples/sample_slip.jpg');
-    setIsSampleLoaded(true);
-    setRotation(0);
-    setZoom(1);
-    handleParseImage('/samples/sample_slip.jpg', true);
+    handleParseImage(localUrl);
   };
 
   // Entry table manipulation
@@ -288,20 +267,6 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={handleLoadSampleSlip}
-              className={`hidden md:flex px-2.5 py-1.5 rounded-xl text-xs font-bold items-center gap-1.5 transition-all ${
-                isSampleLoaded
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-              }`}
-              title="Reload the 07-Oct client pink handwritten slip"
-            >
-              <FileText className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Load 07-Oct Handover Slip</span>
-            </button>
-
-            <button
-              type="button"
               onClick={onClose}
               className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
             >
@@ -412,16 +377,18 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
               <div className="flex items-center gap-1">
                 <button
                   type="button"
+                  disabled={!imageUrl}
                   onClick={() => setRotation((r) => (r - 90) % 360)}
-                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
+                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Rotate -90°"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
                 <button
                   type="button"
+                  disabled={!imageUrl}
                   onClick={() => setRotation((r) => (r + 90) % 360)}
-                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
+                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Rotate +90°"
                 >
                   <RotateCw className="w-3.5 h-3.5" />
@@ -429,24 +396,27 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
                 <span className="text-slate-700">|</span>
                 <button
                   type="button"
+                  disabled={!imageUrl}
                   onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
-                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
+                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Zoom Out"
                 >
                   <ZoomOut className="w-3.5 h-3.5" />
                 </button>
                 <button
                   type="button"
+                  disabled={!imageUrl}
                   onClick={() => setZoom(1)}
-                  className="px-1 text-[10px] font-mono text-slate-400 hover:text-white"
+                  className="px-1 text-[10px] font-mono text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Reset Zoom"
                 >
                   {Math.round(zoom * 100)}%
                 </button>
                 <button
                   type="button"
+                  disabled={!imageUrl}
                   onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
-                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
+                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Zoom In"
                 >
                   <ZoomIn className="w-3.5 h-3.5" />
@@ -454,8 +424,9 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
                 <span className="text-slate-700">|</span>
                 <button
                   type="button"
+                  disabled={!imageUrl}
                   onClick={() => setHighContrast(!highContrast)}
-                  className={`p-1 rounded text-xs flex items-center gap-1 ${
+                  className={`p-1 rounded text-xs flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed ${
                     highContrast
                       ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
                       : 'text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -468,26 +439,56 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
               </div>
             </div>
 
-            {/* Image Canvas */}
+            {/* Image Canvas / Upload Dropzone */}
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-[#070b14] relative">
-              <div
-                style={{
-                  transform: `rotate(${rotation}deg) scale(${zoom})`,
-                  transition: 'transform 0.2s ease-out',
-                }}
-                className="max-h-full max-w-full flex items-center justify-center"
-              >
-                <img
-                  src={imageUrl}
-                  alt="Slip Preview"
-                  className={`max-h-[70vh] w-auto object-contain rounded-xl shadow-2xl border border-slate-800 ${
-                    highContrast ? 'contrast-150 brightness-110 saturate-150' : ''
-                  }`}
-                />
-              </div>
+              {imageUrl ? (
+                <div
+                  style={{
+                    transform: `rotate(${rotation}deg) scale(${zoom})`,
+                    transition: 'transform 0.2s ease-out',
+                  }}
+                  className="max-h-full max-w-full flex items-center justify-center"
+                >
+                  <img
+                    src={imageUrl}
+                    alt="Slip Preview"
+                    className={`max-h-[70vh] w-auto object-contain rounded-xl shadow-2xl border border-slate-800 ${
+                      highContrast ? 'contrast-150 brightness-110 saturate-150' : ''
+                    }`}
+                  />
+                </div>
+              ) : (
+                <div className="max-w-xs text-center p-6 border-2 border-dashed border-slate-800 hover:border-emerald-500/50 rounded-2xl transition-all">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <Camera className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-200 mb-1">Upload Collection Slip</h3>
+                  <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                    Take a clear photo or select an image of the physical handover slip to inspect side-by-side.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      Take Photo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-teal-400" />
+                      Choose File
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {isProcessing && (
-                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center text-emerald-400 gap-2">
+                <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center text-emerald-400 gap-2 z-20">
                   <RefreshCw className="w-7 h-7 animate-spin" />
                   <span className="text-xs font-bold">Analyzing handwritten slip...</span>
                 </div>
@@ -496,7 +497,7 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
 
             {/* Bottom info strip for image */}
             <div className="p-2.5 bg-slate-900/90 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-              <span>Slip: {isSampleLoaded ? '07-Oct Handover Slip (Pink)' : 'Uploaded Slip'}</span>
+              <span>Slip: {imageUrl ? 'Uploaded Handover Slip' : 'No photo uploaded'}</span>
               <span className="font-mono text-emerald-400 font-bold">
                 {entries.length} items detected
               </span>
@@ -564,7 +565,30 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/80 font-medium">
-                    {entries.map((row, idx) => (
+                    {entries.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 px-4 text-center">
+                          <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
+                            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500">
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <p className="text-xs font-bold text-slate-300">No slip items extracted yet</p>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                              Upload or capture a handover slip photo on the left, or manually start adding rows below.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={handleAddRow}
+                              className="mt-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold hover:bg-emerald-500/20 text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              Add First Row Manually
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      entries.map((row, idx) => (
                       <tr
                         key={row.id}
                         className={`hover:bg-slate-800/40 transition-colors ${
@@ -681,7 +705,7 @@ export const AdminSlipDigitizerModal: React.FC<AdminSlipDigitizerModalProps> = (
                           </button>
                         </td>
                       </tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>
