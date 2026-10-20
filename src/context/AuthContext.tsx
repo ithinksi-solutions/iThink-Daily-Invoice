@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Profile, UserRole } from '../types/database';
+import { Profile, UserRole, LanguagePreference } from '../types/database';
 import { useLanguage } from '../lib/i18n';
 
 interface AuthContextType {
@@ -44,7 +44,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data) {
         setProfile(data as Profile);
-        if (data.language_preference) {
+        const savedLang = localStorage.getItem('app_lang') as LanguagePreference;
+        if (savedLang) {
+          setLanguage(savedLang);
+        } else if (data.language_preference) {
           setLanguage(data.language_preference);
         }
       }
