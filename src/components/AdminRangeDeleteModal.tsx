@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { formatINR, getCurrentISTDateString } from '../lib/formatters';
+import { formatINR, formatAppDate, formatAppTime, getCurrentISTDateString } from '../lib/formatters';
 import { BusinessName, Profile } from '../types/database';
 import {
   X,
@@ -13,7 +13,23 @@ import {
   ShieldAlert,
   Building2,
   Filter,
+  List,
+  Search,
 } from 'lucide-react';
+
+export interface PreviewEntry {
+  id: string;
+  sheet_id: string;
+  sheet_date: string;
+  dealer_name: string;
+  cash_amount: number;
+  phonepe_amount: number;
+  total_collected: number;
+  business_name: BusinessName;
+  collector_id: string;
+  operator_name: string;
+  created_at: string;
+}
 
 interface AdminRangeDeleteModalProps {
   isOpen: boolean;
@@ -36,6 +52,8 @@ export const AdminRangeDeleteModal: React.FC<AdminRangeDeleteModalProps> = ({
 
   // Pre-flight preview state
   const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
+  const [previewRecords, setPreviewRecords] = useState<PreviewEntry[]>([]);
+  const [recordSearch, setRecordSearch] = useState<string>('');
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [previewCash, setPreviewCash] = useState<number>(0);
   const [previewPhonePe, setPreviewPhonePe] = useState<number>(0);
@@ -87,16 +105,20 @@ export const AdminRangeDeleteModal: React.FC<AdminRangeDeleteModalProps> = ({
         setPreviewTotal(0);
         setStarCount(0);
         setArboCount(0);
+        setPreviewRecords([]);
         return;
       }
 
+      const sheetMap = new Map<string, string>();
+      sheets.forEach((s) => sheetMap.set(s.id, s.sheet_date));
       const sheetIds = sheets.map((s) => s.id);
 
       let query = supabase
         .from('entries')
-        .select('id, cash_amount, phonepe_amount, total_collected, business_name, collector_id')
+        .select('id, sheet_id, dealer_name, cash_amount, phonepe_amount, total_collected, business_name, collector_id, created_at')
         .in('sheet_id', sheetIds)
-        .eq('is_deleted', false);
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false });
 
       if (selectedBusiness !== 'ALL') {
         query = query.eq('business_name', selectedBusiness);
@@ -109,13 +131,31 @@ export const AdminRangeDeleteModal: React.FC<AdminRangeDeleteModalProps> = ({
       if (entriesErr) throw entriesErr;
 
       const data = records || [];
-      const cash = data.reduce((sum, r) => sum + (Number(r.cash_amount) || 0), 0);
-      const phonePe = data.reduce((sum, r) => sum + (Number(r.phonepe_amount) || 0), 0);
-      const grand = data.reduce((sum, r) => sum + (Number(r.total_collected) || 0), 0);
-      const star = data.filter((r) => r.business_name === 'STAR').length;
-      const arbo = data.filter((r) => r.business_name === 'ARBO PLAST').length;
+      const opMap = new Map<string, string>();
+      operators.forEach((op) => opMap.set(op.id, op.full_name));
 
-      setPreviewCount(data.length);
+      const enrichedRecords: PreviewEntry[] = data.map((r) => ({
+        id: r.id,
+        sheet_id: r.sheet_id,
+        sheet_date: sheetMap.get(r.sheet_id) || fromDate,
+        dealer_name: r.dealer_name || 'Unnamed Dealer',
+        cash_amount: Number(r.cash_amount) || 0,
+        phonepe_amount: Number(r.phonepe_amount) || 0,
+        total_collected: Number(r.total_collected) || 0,
+        business_name: r.business_name,
+        collector_id: r.collector_id,
+        operator_name: opMap.get(r.collector_id) || 'Operator',
+        created_at: r.created_at,
+      }));
+
+      const cash = enrichedRecords.reduce((sum, r) => sum + r.cash_amount, 0);
+      const phonePe = enrichedRecords.reduce((sum, r) => sum + r.phonepe_amount, 0);
+      const grand = enrichedRecords.reduce((sum, r) => sum + r.total_collected, 0);
+      const star = enrichedRecords.filter((r) => r.business_name === 'STAR').length;
+      const arbo = enrichedRecords.filter((r) => r.business_name === 'ARBO PLAST').length;
+
+      setPreviewRecords(enrichedRecords);
+      setPreviewCount(enrichedRecords.length);
       setPreviewCash(cash);
       setPreviewPhonePe(phonePe);
       setPreviewTotal(grand);
@@ -123,11 +163,24 @@ export const AdminRangeDeleteModal: React.FC<AdminRangeDeleteModalProps> = ({
       setArboCount(arbo);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to scan records in selected range');
+      setPreviewRecords([]);
       setPreviewCount(null);
     } finally {
       setLoadingPreview(false);
     }
-  }, [fromDate, toDate, selectedBusiness, selectedOperator]);
+  }, [fromDate, toDate, selectedBusiness, selectedOperator, operators]);
+
+  const filteredPreviewRecords = useMemo(() => {
+    if (!recordSearch.trim()) return previewRecords;
+    const term = recordSearch.toLowerCase().trim();
+    return previewRecords.filter(
+      (r) =>
+        r.dealer_name.toLowerCase().includes(term) ||
+        r.operator_name.toLowerCase().includes(term) ||
+        r.business_name.toLowerCase().includes(term) ||
+        r.sheet_date.includes(term)
+    );
+  }, [previewRecords, recordSearch]);
 
   useEffect(() => {
     if (isOpen) {
@@ -193,8 +246,8 @@ export const AdminRangeDeleteModal: React.FC<AdminRangeDeleteModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl shadow-2xl flex flex-col overflow-hidden max-h-[92vh]">
+    <div data-testid="range-delete-modal" className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl sm:max-w-3xl shadow-2xl flex flex-col overflow-hidden max-h-[92vh]">
         
         {/* Header */}
         <header className="px-5 py-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between shrink-0">
@@ -373,6 +426,88 @@ export const AdminRangeDeleteModal: React.FC<AdminRangeDeleteModalProps> = ({
                   <span>STAR: <strong className="text-emerald-400 font-mono">{starCount}</strong> records</span>
                   <span>ARBO PLAST: <strong className="text-teal-400 font-mono">{arboCount}</strong> records</span>
                   <span>Date Window: <strong className="text-white font-mono">{fromDate}</strong> to <strong className="text-white font-mono">{toDate}</strong></span>
+                </div>
+
+                {/* DETAILED RECORD LIST PREVIEW */}
+                <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                      <List className="w-4 h-4 text-rose-400" />
+                      <span>Targeted Records for Deletion ({previewRecords.length} Collections)</span>
+                    </span>
+
+                    {previewRecords.length > 2 && (
+                      <div className="relative w-full sm:w-56">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={recordSearch}
+                          onChange={(e) => setRecordSearch(e.target.value)}
+                          placeholder="Filter records..."
+                          className="w-full pl-8 pr-2.5 py-1 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {filteredPreviewRecords.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-slate-500 bg-slate-900/50 rounded-lg border border-slate-800">
+                      No records match "{recordSearch}".
+                    </div>
+                  ) : (
+                    <div className="max-h-52 overflow-y-auto rounded-xl border border-slate-800 bg-slate-900/90 divide-y divide-slate-800/60 shadow-inner">
+                      {filteredPreviewRecords.map((rec, idx) => (
+                        <div
+                          key={rec.id}
+                          className="p-2.5 sm:px-3 sm:py-2.5 flex items-center justify-between gap-3 hover:bg-slate-800/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="text-[10px] font-mono font-bold text-slate-500 w-5 shrink-0 text-right">
+                              #{idx + 1}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="font-extrabold text-white text-xs truncate">
+                                  {rec.dealer_name}
+                                </span>
+                                <span
+                                  className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0 ${
+                                    rec.business_name === 'STAR'
+                                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                      : 'bg-teal-500/15 text-teal-300 border-teal-500/30'
+                                  }`}
+                                >
+                                  {rec.business_name}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 flex flex-wrap items-center gap-1.5 mt-0.5">
+                                <span className="font-mono text-slate-300 font-semibold">{formatAppDate(rec.sheet_date)}</span>
+                                <span>•</span>
+                                <span className="text-slate-300">{rec.operator_name}</span>
+                                {rec.created_at && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="font-mono text-slate-400">{formatAppTime(rec.created_at)}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <div className="font-mono font-black text-xs sm:text-sm text-rose-300">
+                              {formatINR(rec.total_collected)}
+                            </div>
+                            <div className="text-[9px] text-slate-400 font-mono mt-0.5">
+                              {rec.cash_amount > 0 && `Cash: ${formatINR(rec.cash_amount, false)}`}
+                              {rec.cash_amount > 0 && rec.phonepe_amount > 0 && ' • '}
+                              {rec.phonepe_amount > 0 && `PhonePe: ${formatINR(rec.phonepe_amount, false)}`}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] leading-relaxed">
