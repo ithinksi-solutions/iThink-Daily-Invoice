@@ -53,13 +53,14 @@ import {
   ArrowUpDown,
   ArrowLeft,
   CalendarX,
+  Wrench,
 } from 'lucide-react';
 
 export type SortField = 'created_at' | 'collector' | 'business_name' | 'dealer_name' | 'cash_amount' | 'phonepe_amount' | 'total_collected' | 'balance_owed';
 export type SortOrder = 'asc' | 'desc';
 
 interface AdminDailyPageProps {
-  onNavigateTab: (tab: 'daily' | 'dashboard' | 'users') => void;
+  onNavigateTab: (tab: 'daily' | 'dashboard' | 'tools' | 'users') => void;
   initialDate?: string;
   isDrilldown?: boolean;
   onClearDrilldown?: () => void;
@@ -475,6 +476,14 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             </button>
             <button
               type="button"
+              onClick={() => onNavigateTab('tools')}
+              className="px-2.5 py-1 text-xs font-medium rounded-md text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
+            >
+              <Wrench className="w-3.5 h-3.5" />
+              <span>Tools</span>
+            </button>
+            <button
+              type="button"
               onClick={() => onNavigateTab('users')}
               className="px-2.5 py-1 text-xs font-medium rounded-md text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
             >
@@ -612,7 +621,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
           <button
             type="button"
             onClick={() => setIsRangeDeleteOpen(true)}
-            className="flex px-2 sm:px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 hover:bg-rose-500/25 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            className="hidden md:flex px-2 sm:px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 hover:bg-rose-500/25 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
             title="Purge / Delete Records by Date Range"
           >
             <Trash2 className="w-3.5 h-3.5 text-rose-400" />
@@ -754,15 +763,6 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             title="Refresh Data"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsRangeDeleteOpen(true)}
-            className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30"
-            title="Purge Date Range"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
           </button>
         </div>
 
@@ -1558,6 +1558,14 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
         >
           <BarChart3 className="w-4 h-4 text-slate-400" />
           <span>Analytics</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigateTab('tools')}
+          className="flex-1 py-1.5 flex flex-col items-center gap-0.5 text-[11px] font-bold rounded-xl text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+        >
+          <Wrench className="w-4 h-4 text-slate-400" />
+          <span>Tools</span>
         </button>
         <button
           type="button"

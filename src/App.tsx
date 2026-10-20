@@ -4,6 +4,7 @@ import { LoginPage } from './pages/LoginPage';
 import { OperatorTodayPage } from './pages/OperatorTodayPage';
 import { AdminDailyPage } from './pages/AdminDailyPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AdminToolsPage } from './pages/AdminToolsPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { Loader2 } from 'lucide-react';
 import { App as CapApp } from '@capacitor/app';
@@ -11,7 +12,7 @@ import { Capacitor } from '@capacitor/core';
 
 export const App: React.FC = () => {
   const { user, role, loading } = useAuth();
-  const [adminTab, setAdminTab] = useState<'daily' | 'dashboard' | 'users'>('daily');
+  const [adminTab, setAdminTab] = useState<'daily' | 'dashboard' | 'tools' | 'users'>('daily');
   const [drilldownDate, setDrilldownDate] = useState<string | undefined>(undefined);
   const [isDrilldown, setIsDrilldown] = useState<boolean>(false);
 
@@ -77,6 +78,17 @@ export const App: React.FC = () => {
           setDrilldownDate(dStr);
           setIsDrilldown(true);
           setAdminTab('daily');
+        }}
+      />
+    );
+  }
+
+  if (adminTab === 'tools') {
+    return (
+      <AdminToolsPage
+        onNavigateTab={(tab) => {
+          setIsDrilldown(false);
+          setAdminTab(tab);
         }}
       />
     );

@@ -17,11 +17,12 @@ import {
   BarChart3,
   Shield,
   Activity,
-  CheckCircle2
+  CheckCircle2,
+  Wrench,
 } from 'lucide-react';
 
 interface DashboardProps {
-  onNavigateTab: (tab: 'daily' | 'dashboard' | 'users') => void;
+  onNavigateTab: (tab: 'daily' | 'dashboard' | 'tools' | 'users') => void;
   onSelectDate: (dateStr: string) => void;
 }
 
@@ -226,6 +227,14 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
             >
               <BarChart3 className="w-3.5 h-3.5" />
               <span>Analytics</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('tools')}
+              className="px-2.5 py-1 text-xs font-medium rounded-md text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
+            >
+              <Wrench className="w-3.5 h-3.5" />
+              <span>Tools</span>
             </button>
             <button
               type="button"
@@ -552,6 +561,14 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
         >
           <BarChart3 className="w-4 h-4 text-purple-400" />
           <span>Analytics</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigateTab('tools')}
+          className="flex-1 py-1.5 flex flex-col items-center gap-0.5 text-[11px] font-bold rounded-xl text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+        >
+          <Wrench className="w-4 h-4 text-slate-400" />
+          <span>Tools</span>
         </button>
         <button
           type="button"
