@@ -612,7 +612,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
           <button
             type="button"
             onClick={() => setIsRangeDeleteOpen(true)}
-            className="hidden sm:flex px-2 sm:px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 hover:bg-rose-500/25 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            className="flex px-2 sm:px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 hover:bg-rose-500/25 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
             title="Purge / Delete Records by Date Range"
           >
             <Trash2 className="w-3.5 h-3.5 text-rose-400" />
@@ -754,6 +754,15 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             title="Refresh Data"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsRangeDeleteOpen(true)}
+            className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30"
+            title="Purge Date Range"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
           </button>
         </div>
 
