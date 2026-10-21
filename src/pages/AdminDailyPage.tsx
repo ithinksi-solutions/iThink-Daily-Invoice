@@ -86,6 +86,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterOperator, setFilterOperator] = useState<string>('ALL');
   const [filterMode, setFilterMode] = useState<string>('ALL');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'approved' | 'submitted'>('ALL');
 
   // Data state
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -272,6 +273,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
     if (filterMode === 'CASH_ONLY' && (e.cash_amount === 0 || e.phonepe_amount > 0)) return false;
     if (filterMode === 'PHONEPE_ONLY' && (e.phonepe_amount === 0 || e.cash_amount > 0)) return false;
     if (filterMode === 'SPLIT' && (e.cash_amount === 0 || e.phonepe_amount === 0)) return false;
+    if (filterStatus !== 'ALL' && e.status !== filterStatus) return false;
     return true;
   });
 
@@ -312,6 +314,98 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
 
   const cashCount = filteredEntries.filter((e) => e.cash_amount > 0).length;
   const phonePeCount = filteredEntries.filter((e) => e.phonepe_amount > 0).length;
+
+  // Status Metrics (Money Received vs Pending Handover)
+  const pendingEntries = entries.filter((e) => e.status === 'submitted');
+  const approvedEntries = entries.filter((e) => e.status === 'approved');
+  const pendingTotal = pendingEntries.reduce((acc, curr) => acc + (curr.total_collected || 0), 0);
+  const approvedTotal = approvedEntries.reduce((acc, curr) => acc + (curr.total_collected || 0), 0);
+
+  const visiblePendingEntries = filteredEntries.filter((e) => e.status === 'submitted');
+  const visibleApprovedEntries = filteredEntries.filter((e) => e.status === 'approved');
+  const visiblePendingTotal = visiblePendingEntries.reduce((acc, curr) => acc + (curr.total_collected || 0), 0);
+  const visibleApprovedTotal = visibleApprovedEntries.reduce((acc, curr) => acc + (curr.total_collected || 0), 0);
+
+  // Approval / Money Received Action Handlers
+  const handleToggleApproval = async (entry: Entry) => {
+    const nextStatus: 'approved' | 'submitted' = entry.status === 'approved' ? 'submitted' : 'approved';
+
+    // Optimistic local state update
+    setEntries((prev) =>
+      prev.map((item) => (item.id === entry.id ? { ...item, status: nextStatus } : item))
+    );
+
+    try {
+      const { error } = await supabase
+        .from('entries')
+        .update({
+          status: nextStatus,
+          updated_by: user?.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', entry.id);
+
+      if (error) {
+        console.error('Failed to toggle approval status:', error);
+        // Rollback
+        setEntries((prev) =>
+          prev.map((item) => (item.id === entry.id ? { ...item, status: entry.status } : item))
+        );
+        alert('Failed to update status: ' + error.message);
+      } else {
+        showToast(
+          nextStatus === 'approved'
+            ? `✓ Money Received: ${entry.dealer_name} (${formatINR(entry.total_collected)})`
+            : `Marked ${entry.dealer_name} as Pending Handover.`
+        );
+      }
+    } catch (err: any) {
+      console.error('Toggle status error:', err);
+      setEntries((prev) =>
+        prev.map((item) => (item.id === entry.id ? { ...item, status: entry.status } : item))
+      );
+      alert('Error updating status: ' + err.message);
+    }
+  };
+
+  const handleApproveAllPending = async () => {
+    const targets = filteredEntries.filter((e) => e.status === 'submitted');
+    if (targets.length === 0) {
+      showToast('No pending entries to approve.');
+      return;
+    }
+
+    const targetIds = targets.map((e) => e.id);
+    const sumTotal = targets.reduce((acc, curr) => acc + (curr.total_collected || 0), 0);
+
+    // Optimistic local state update
+    setEntries((prev) =>
+      prev.map((item) => (targetIds.includes(item.id) ? { ...item, status: 'approved' } : item))
+    );
+
+    try {
+      const { error } = await supabase
+        .from('entries')
+        .update({
+          status: 'approved',
+          updated_by: user?.id,
+          updated_at: new Date().toISOString(),
+        })
+        .in('id', targetIds);
+
+      if (error) {
+        console.error('Bulk approve failed:', error);
+        loadDailyEntries();
+        alert('Failed to approve entries: ' + error.message);
+      } else {
+        showToast(`✓ Approved ${targets.length} pending collections (${formatINR(sumTotal)})!`);
+      }
+    } catch (err: any) {
+      console.error('Bulk approve error:', err);
+      loadDailyEntries();
+      alert('Error approving entries: ' + err.message);
+    }
+  };
 
   // Edit Handlers
   const handleStartEdit = (entry: Entry) => {
@@ -850,6 +944,59 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
           </select>
         </div>
 
+        {/* Row 4: Money Received / Approval Filter & Bulk Action (Revolut Style) */}
+        <div className="flex items-center justify-between gap-1.5 pt-1">
+          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 text-[10px] font-bold shadow-inner">
+            <button
+              type="button"
+              onClick={() => setFilterStatus('ALL')}
+              className={`px-2 py-0.5 rounded transition-all ${
+                filterStatus === 'ALL'
+                  ? 'bg-slate-700 text-white font-black'
+                  : 'text-slate-400'
+              }`}
+            >
+              All ({entries.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterStatus('submitted')}
+              className={`px-2 py-0.5 rounded transition-all flex items-center gap-1 ${
+                filterStatus === 'submitted'
+                  ? 'bg-amber-500 text-slate-950 font-black'
+                  : 'text-amber-400'
+              }`}
+            >
+              <span>Pending</span>
+              <span className="font-mono">({pendingEntries.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterStatus('approved')}
+              className={`px-2 py-0.5 rounded transition-all flex items-center gap-1 ${
+                filterStatus === 'approved'
+                  ? 'bg-emerald-500 text-slate-950 font-black'
+                  : 'text-emerald-400'
+              }`}
+            >
+              <span>Received</span>
+              <span className="font-mono">({approvedEntries.length})</span>
+            </button>
+          </div>
+
+          {pendingEntries.length > 0 && (
+            <button
+              type="button"
+              onClick={handleApproveAllPending}
+              className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+              title="Mark All Pending as Money Received"
+            >
+              <Check className="w-3 h-3 stroke-[3]" />
+              <span>Approve All</span>
+            </button>
+          )}
+        </div>
+
       </div>
 
       {/* 2. POWER BI EXECUTIVE SCORECARD STRIP & INLINE FILTERS (HEIGHT 48PX - Desktop only) */}
@@ -930,6 +1077,42 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             </div>
           )}
 
+          {/* Received Scorecard */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-emerald-500/30">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <div>
+              <span className="block text-slate-400 uppercase text-[9px] font-bold leading-none">Received</span>
+              <span className="font-mono font-black text-emerald-400 text-xs leading-none">
+                {formatINR(approvedTotal)}
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-500 font-mono ml-0.5">({approvedEntries.length})</span>
+          </div>
+
+          {/* Pending Handover Scorecard */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-amber-500/30">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <div>
+              <span className="block text-amber-300 uppercase text-[9px] font-bold leading-none">Pending Handover</span>
+              <span className="font-mono font-black text-amber-400 text-xs leading-none">
+                {formatINR(pendingTotal)}
+              </span>
+            </div>
+            <span className="text-[10px] text-amber-500/80 font-mono ml-0.5">({pendingEntries.length})</span>
+          </div>
+
+          {pendingEntries.length > 0 && (
+            <button
+              type="button"
+              onClick={handleApproveAllPending}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer active:scale-95"
+              title="Mark all pending collections as received"
+            >
+              <Check className="w-3.5 h-3.5 stroke-[3]" />
+              <span>Approve All ({pendingEntries.length})</span>
+            </button>
+          )}
+
           <span className="text-slate-700">|</span>
 
           <span className="font-mono text-slate-400 text-[11px]">
@@ -989,6 +1172,20 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
               <option value="CASH_ONLY" className="bg-slate-950 text-white">Cash Only</option>
               <option value="PHONEPE_ONLY" className="bg-slate-950 text-white">PhonePe Only</option>
               <option value="SPLIT" className="bg-slate-950 text-white">Split Only</option>
+            </select>
+            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
+          </div>
+
+          {/* Status Dropdown with Custom Chevron */}
+          <div className="relative hidden lg:inline-flex items-center">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as any)}
+              className="appearance-none pl-2.5 pr-7 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-bold text-amber-400 hover:border-slate-700 focus:outline-none focus:border-emerald-500 cursor-pointer shadow-inner"
+            >
+              <option value="ALL" className="bg-slate-950 text-white">All Status ({entries.length})</option>
+              <option value="submitted" className="bg-slate-950 text-amber-400">Pending Handover ({pendingEntries.length})</option>
+              <option value="approved" className="bg-slate-950 text-emerald-400">Money Received ({approvedEntries.length})</option>
             </select>
             <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
           </div>
@@ -1241,7 +1438,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
 
                   <th className="py-2.5 px-3 text-center">Slip Proof</th>
                   <th className="py-2.5 px-3">Note / Audit</th>
-                  <th className="py-2.5 px-3 text-center">Status</th>
+                  <th className="py-2.5 px-3 text-center min-w-[125px]">Money Received</th>
                   <th className="py-2.5 px-3 text-center">Actions</th>
                 </tr>
               </thead>
@@ -1352,12 +1549,33 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                         {e.note || '-'}
                       </td>
 
-                      {/* Status */}
+                      {/* Status / Money Received Interactive Checkbox */}
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                          <Check className="w-3 h-3 stroke-[3]" />
-                          <span>Approved</span>
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleApproval(e)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer select-none active:scale-95 ${
+                            e.status === 'approved'
+                              ? 'bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/25 shadow-sm shadow-emerald-500/10'
+                              : 'bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500/25 ring-1 ring-amber-500/30'
+                          }`}
+                          title={
+                            e.status === 'approved'
+                              ? 'Money Received! Click to mark Pending Handover'
+                              : 'Pending Handover! Click to mark Money Received'
+                          }
+                        >
+                          <span
+                            className={`w-4 h-4 rounded flex items-center justify-center text-[10px] transition-colors ${
+                              e.status === 'approved'
+                                ? 'bg-emerald-500 text-slate-950 font-black'
+                                : 'border-2 border-amber-400 bg-slate-950'
+                            }`}
+                          >
+                            {e.status === 'approved' && <Check className="w-3 h-3 stroke-[3]" />}
+                          </span>
+                          <span>{e.status === 'approved' ? 'Received' : 'Pending'}</span>
+                        </button>
                       </td>
 
                       {/* Actions */}
@@ -1424,7 +1642,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                     className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md flex flex-col gap-2"
                   >
                     <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
                             e.business_name === 'STAR'
@@ -1436,6 +1654,25 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                         </span>
                         <span className="text-slate-400 font-semibold">{op?.full_name || 'Operator'}</span>
                         <span className="text-slate-500 font-mono text-[11px]">{formatAppTime(e.created_at)}</span>
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold inline-flex items-center gap-1 ${
+                            e.status === 'approved'
+                              ? 'text-emerald-300 bg-emerald-500/15 border border-emerald-500/30'
+                              : 'text-amber-300 bg-amber-500/15 border border-amber-500/30'
+                          }`}
+                        >
+                          {e.status === 'approved' ? (
+                            <>
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                              <span>Received</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="w-2.5 h-2.5" />
+                              <span>Pending</span>
+                            </>
+                          )}
+                        </span>
                       </div>
                       <span className="font-mono text-base font-black text-white">
                         {formatINR(e.total_collected)}
@@ -1460,6 +1697,33 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                       </div>
 
                       <div className="flex items-center gap-1.5">
+                        {/* Money Received / Approval Interactive Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleApproval(e)}
+                          className={`min-h-[34px] px-2.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 active:scale-95 transition-all select-none cursor-pointer ${
+                            e.status === 'approved'
+                              ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300'
+                              : 'bg-amber-500/20 border border-amber-500/50 text-amber-300 shadow-sm'
+                          }`}
+                          title={
+                            e.status === 'approved'
+                              ? 'Money Received! Tap to toggle'
+                              : 'Pending Handover! Tap to mark Money Received'
+                          }
+                        >
+                          <span
+                            className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[9px] ${
+                              e.status === 'approved'
+                                ? 'bg-emerald-500 text-slate-950 font-black'
+                                : 'border-2 border-amber-400 bg-slate-950'
+                            }`}
+                          >
+                            {e.status === 'approved' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                          </span>
+                          <span>{e.status === 'approved' ? 'Received' : 'Mark Recv'}</span>
+                        </button>
+
                         {e.image_url && (
                           <button
                             type="button"

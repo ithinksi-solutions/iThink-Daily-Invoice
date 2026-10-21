@@ -19,7 +19,9 @@ import {
   Download,
   Wallet,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Check,
+  Clock
 } from 'lucide-react';
 
 export const OperatorTodayPage: React.FC = () => {
@@ -107,6 +109,12 @@ export const OperatorTodayPage: React.FC = () => {
   const cashTotal = filteredEntries.reduce((acc, curr) => acc + (curr.cash_amount || 0), 0);
   const phonePeTotal = filteredEntries.reduce((acc, curr) => acc + (curr.phonepe_amount || 0), 0);
   const grandTotal = cashTotal + phonePeTotal;
+  const settledTotal = filteredEntries
+    .filter((e) => e.status === 'approved')
+    .reduce((acc, curr) => acc + (curr.total_collected || 0), 0);
+  const pendingHandoverTotal = filteredEntries
+    .filter((e) => e.status === 'submitted')
+    .reduce((acc, curr) => acc + (curr.total_collected || 0), 0);
 
   const handleEntryAdded = (dealer: string, amount: number) => {
     setIsAddModalOpen(false);
@@ -233,6 +241,26 @@ export const OperatorTodayPage: React.FC = () => {
             </span>
           </div>
 
+          {/* Handover & Settlement Status Ribbon */}
+          {filteredEntries.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-xs font-mono">
+              <div className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
+                <span className="text-slate-400 font-sans font-bold flex items-center gap-1 text-[11px]">
+                  <Check className="w-3 h-3 text-emerald-400 stroke-[3]" />
+                  {t('received')}
+                </span>
+                <span className="font-bold text-emerald-400">{formatINR(settledTotal)}</span>
+              </div>
+              <div className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+                <span className="text-slate-400 font-sans font-bold flex items-center gap-1 text-[11px]">
+                  <Clock className="w-3 h-3 text-amber-400" />
+                  {t('pending')}
+                </span>
+                <span className="font-bold text-amber-400">{formatINR(pendingHandoverTotal)}</span>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -274,6 +302,25 @@ export const OperatorTodayPage: React.FC = () => {
                     </span>
                     <span className="text-slate-400 font-mono text-[11px]">
                       {formatAppTime(entry.created_at)}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                        entry.status === 'approved'
+                          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                      }`}
+                    >
+                      {entry.status === 'approved' ? (
+                        <>
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                          <span>{t('settledWithAdmin')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>{t('pendingHandover')}</span>
+                        </>
+                      )}
                     </span>
                   </div>
 

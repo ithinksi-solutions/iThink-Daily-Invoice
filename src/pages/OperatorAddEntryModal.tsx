@@ -87,7 +87,7 @@ export const OperatorAddEntryModal: React.FC<AddEntryModalProps> = ({
           note: note.trim() || null,
           image_url: imageUrl,
           business_name: businessName,
-          status: 'approved',
+          status: 'submitted',
         })
         .select()
         .single();
