@@ -553,15 +553,18 @@ export const AdminToolsPage: React.FC<AdminToolsPageProps> = ({ onNavigateTab })
         operators={operators}
       />
 
-      <AdminAddEntryModal
-        isOpen={isAddEntryOpen}
-        onClose={() => setIsAddEntryOpen(false)}
-        onSuccess={(dealer, amount) => {
-          showToast(`Logged entry for ${dealer}: ₹${amount}`);
-        }}
-        operators={operators}
-        currentDate={todayIST}
-      />
+      {isAddEntryOpen && (
+        <AdminAddEntryModal
+          key="admin-tools-add-entry-modal"
+          isOpen={isAddEntryOpen}
+          onClose={() => setIsAddEntryOpen(false)}
+          onSuccess={(dealer, amount) => {
+            showToast(`Logged entry for ${dealer}: ₹${amount}`);
+          }}
+          operators={operators}
+          currentDate={todayIST}
+        />
+      )}
 
       <DaySlipsGalleryModal
         isOpen={isGalleryOpen}

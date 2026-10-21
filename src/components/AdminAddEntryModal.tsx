@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Profile, BusinessName } from '../types/database';
 import { formatINR, getCurrentISTDateString } from '../lib/formatters';
+import { CashBadge, UpiBadge } from './PaymentLogos';
 import { X, Check, AlertCircle, RefreshCw, Plus, Building2, UserCheck, DollarSign } from 'lucide-react';
 
 interface AdminAddEntryModalProps {
@@ -30,6 +31,24 @@ export const AdminAddEntryModal: React.FC<AdminAddEntryModalProps> = ({
   
   const [saving, setSaving] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Guarantee clean blank state every time modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      setBusinessName('STAR');
+      setDealerName('');
+      setCashAmount('');
+      setPhonePeAmount('');
+      setBalanceOwed('');
+      setNote('');
+      setErrorMsg(null);
+      setSaving(false);
+      setEntryDate(currentDate || getCurrentISTDateString());
+      if (operators.length > 0) {
+        setOperatorId(operators[0].id);
+      }
+    }
+  }, [isOpen, currentDate, operators]);
 
   // Hardware Back Button Dismissal Listener
   useEffect(() => {
@@ -70,7 +89,7 @@ export const AdminAddEntryModal: React.FC<AdminAddEntryModalProps> = ({
     }
 
     if (dynamicTotal <= 0) {
-      setErrorMsg('Please enter either Cash amount or PhonePe amount');
+      setErrorMsg('Please enter either Cash amount or UPI amount');
       return;
     }
 
@@ -123,7 +142,19 @@ export const AdminAddEntryModal: React.FC<AdminAddEntryModalProps> = ({
         throw new Error(entryErr.message);
       }
 
-      onSuccess(dealerName.trim(), dynamicTotal);
+      const savedDealer = dealerName.trim();
+      const savedAmount = dynamicTotal;
+
+      // Clear all fields immediately
+      setDealerName('');
+      setCashAmount('');
+      setPhonePeAmount('');
+      setBalanceOwed('');
+      setNote('');
+      setErrorMsg(null);
+      setSaving(false);
+
+      onSuccess(savedDealer, savedAmount);
       onClose();
     } catch (err: any) {
       console.error('Admin add entry failed:', err);
@@ -232,10 +263,13 @@ export const AdminAddEntryModal: React.FC<AdminAddEntryModalProps> = ({
             />
           </div>
 
-          {/* Amounts: Cash & PhonePe */}
+          {/* Amounts: Cash & UPI */}
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">Cash Amount (₹)</label>
+              <label className="flex items-center gap-1.5 text-slate-400 font-semibold mb-1">
+                <CashBadge size="xs" />
+                <span>Cash Amount (₹)</span>
+              </label>
               <input
                 type="number"
                 min="0"
@@ -247,7 +281,10 @@ export const AdminAddEntryModal: React.FC<AdminAddEntryModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">PhonePe Amount (₹)</label>
+              <label className="flex items-center gap-1.5 text-slate-400 font-semibold mb-1">
+                <UpiBadge size="xs" />
+                <span>UPI Amount (₹)</span>
+              </label>
               <input
                 type="number"
                 min="0"
@@ -296,7 +333,15 @@ export const AdminAddEntryModal: React.FC<AdminAddEntryModalProps> = ({
           <div className="pt-2 flex items-center justify-end gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                setDealerName('');
+                setCashAmount('');
+                setPhonePeAmount('');
+                setBalanceOwed('');
+                setNote('');
+                setErrorMsg(null);
+                onClose();
+              }}
               className="px-4 py-2 rounded-xl text-slate-400 hover:text-white font-bold"
             >
               Cancel

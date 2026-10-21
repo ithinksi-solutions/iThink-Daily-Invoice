@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../lib/i18n';
 import { formatAppDate, formatINR, getCurrentISTDateString, toISODateString } from '../lib/formatters';
+import { CashBadge, UpiBadge } from '../components/PaymentLogos';
 import {
   TrendingUp,
   TrendingDown,
@@ -401,13 +402,19 @@ export const AdminDashboardPage: React.FC<DashboardProps> = ({ onNavigateTab, on
 
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="p-2 rounded-lg bg-slate-950 border border-purple-500/20">
-                <span className="text-[10px] font-bold text-purple-400">PhonePe ({metrics.phonePeShare}%)</span>
+                <span className="text-[10px] font-bold text-purple-400 flex items-center gap-1.5">
+                  <UpiBadge size="xs" />
+                  <span>UPI ({metrics.phonePeShare}%)</span>
+                </span>
                 <div className="font-mono font-bold text-sm text-white mt-0.5">
                   {formatINR(metrics.todayTotal * (metrics.phonePeShare / 100))}
                 </div>
               </div>
               <div className="p-2 rounded-lg bg-slate-950 border border-emerald-500/20">
-                <span className="text-[10px] font-bold text-emerald-400">Cash ({metrics.cashShare}%)</span>
+                <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1.5">
+                  <CashBadge size="xs" />
+                  <span>Cash ({metrics.cashShare}%)</span>
+                </span>
                 <div className="font-mono font-bold text-sm text-white mt-0.5">
                   {formatINR(metrics.todayTotal * (metrics.cashShare / 100))}
                 </div>

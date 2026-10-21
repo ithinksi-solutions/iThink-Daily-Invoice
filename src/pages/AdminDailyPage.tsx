@@ -8,6 +8,7 @@ import { DaySlipsGalleryModal } from '../components/DaySlipsGalleryModal';
 import { AdminSlipDigitizerModal } from '../components/AdminSlipDigitizerModal';
 import { AdminAddEntryModal } from '../components/AdminAddEntryModal';
 import { AdminRangeDeleteModal } from '../components/AdminRangeDeleteModal';
+import { CashBadge, UpiBadge } from '../components/PaymentLogos';
 import { formatAppDate, formatAppTime, formatINR, getCurrentISTDateString } from '../lib/formatters';
 import * as XLSX from 'xlsx';
 import {
@@ -940,7 +941,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             <option value="total_collected-desc">Sort: High ₹</option>
             <option value="total_collected-asc">Sort: Low ₹</option>
             <option value="cash_amount-desc">Sort: Cash</option>
-            <option value="phonepe_amount-desc">Sort: PhonePe</option>
+            <option value="phonepe_amount-desc">Sort: UPI</option>
           </select>
         </div>
 
@@ -1006,7 +1007,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
         <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap">
           {/* Cash Scorecard */}
           <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800/80">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50"></span>
+            <CashBadge size="xs" />
             <div>
               <span className="block text-slate-400 uppercase text-[9px] font-bold leading-none">Cash In-Hand</span>
               <span className="font-mono font-black text-emerald-400 text-xs leading-none">
@@ -1016,11 +1017,11 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             <span className="text-[10px] text-slate-500 font-mono ml-1">({cashCount})</span>
           </div>
 
-          {/* PhonePe Scorecard */}
+          {/* UPI Scorecard */}
           <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800/80">
-            <span className="w-2 h-2 rounded-full bg-purple-400 shadow-sm shadow-purple-400/50"></span>
+            <UpiBadge size="xs" />
             <div>
-              <span className="block text-slate-400 uppercase text-[9px] font-bold leading-none">PhonePe Digital</span>
+              <span className="block text-slate-400 uppercase text-[9px] font-bold leading-none">UPI Digital</span>
               <span className="font-mono font-black text-purple-400 text-xs leading-none">
                 {formatINR(visiblePhonePe)}
               </span>
@@ -1170,7 +1171,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             >
               <option value="ALL" className="bg-slate-950 text-white">All Modes</option>
               <option value="CASH_ONLY" className="bg-slate-950 text-white">Cash Only</option>
-              <option value="PHONEPE_ONLY" className="bg-slate-950 text-white">PhonePe Only</option>
+              <option value="PHONEPE_ONLY" className="bg-slate-950 text-white">UPI Only</option>
               <option value="SPLIT" className="bg-slate-950 text-white">Split Only</option>
             </select>
             <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
@@ -1378,7 +1379,8 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                     className="py-2.5 px-3 text-right cursor-pointer hover:text-white transition-colors"
                     title="Click to sort by Cash Amount"
                   >
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <CashBadge size="xs" />
                       <span>Cash (₹)</span>
                       {sortField === 'cash_amount' ? (
                         sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-emerald-400" /> : <ArrowDown className="w-3 h-3 text-emerald-400" />
@@ -1388,14 +1390,15 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                     </div>
                   </th>
 
-                  {/* PhonePe (₹) */}
+                  {/* UPI (₹) */}
                   <th
                     onClick={() => handleToggleSort('phonepe_amount')}
                     className="py-2.5 px-3 text-right cursor-pointer hover:text-white transition-colors"
-                    title="Click to sort by PhonePe Amount"
+                    title="Click to sort by UPI Amount"
                   >
-                    <div className="flex items-center justify-end gap-1">
-                      <span>PhonePe (₹)</span>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <UpiBadge size="xs" />
+                      <span>UPI (₹)</span>
                       {sortField === 'phonepe_amount' ? (
                         sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-purple-400" /> : <ArrowDown className="w-3 h-3 text-purple-400" />
                       ) : (
@@ -1692,8 +1695,18 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
 
                     <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2 text-[11px] font-mono">
-                        {e.cash_amount > 0 && <span className="text-emerald-400">Cash: {formatINR(e.cash_amount)}</span>}
-                        {e.phonepe_amount > 0 && <span className="text-purple-400">PhonePe: {formatINR(e.phonepe_amount)}</span>}
+                        {e.cash_amount > 0 && (
+                          <span className="text-emerald-400 flex items-center gap-1">
+                            <CashBadge size="xs" />
+                            <span>{formatINR(e.cash_amount)}</span>
+                          </span>
+                        )}
+                        {e.phonepe_amount > 0 && (
+                          <span className="text-purple-400 flex items-center gap-1">
+                            <UpiBadge size="xs" />
+                            <span>{formatINR(e.phonepe_amount)}</span>
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1.5">
@@ -1799,8 +1812,8 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
           <span>Slips Attached: <strong className="text-teal-400 font-mono">{daySlipsCount}</strong></span>
         </div>
         <div className="flex items-center gap-4 font-mono font-bold text-xs">
-          <span>Cash: <strong className="text-emerald-400">{formatINR(visibleCash)}</strong></span>
-          <span>PhonePe: <strong className="text-purple-400">{formatINR(visiblePhonePe)}</strong></span>
+          <span className="flex items-center gap-1.5"><CashBadge size="xs" /> Cash: <strong className="text-emerald-400">{formatINR(visibleCash)}</strong></span>
+          <span className="flex items-center gap-1.5"><UpiBadge size="xs" /> UPI: <strong className="text-purple-400">{formatINR(visiblePhonePe)}</strong></span>
           <span>Total: <strong className="text-white">{formatINR(visibleGrand)}</strong></span>
         </div>
       </footer>
@@ -1854,17 +1867,20 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
         initialDate={selectedDate}
       />
 
-      {/* DIRECT MANUAL ENTRY MODAL */}
-      <AdminAddEntryModal
-        isOpen={isAddEntryOpen}
-        onClose={() => setIsAddEntryOpen(false)}
-        onSuccess={(dealer, amount) => {
-          showToast(`Saved collection entry for ${dealer} (${formatINR(amount)})`);
-          loadDailyEntries();
-        }}
-        operators={operators}
-        currentDate={selectedDate}
-      />
+      {/* DIRECT MANUAL ENTRY MODAL (Unmounted when closed to guarantee virgin clean fields) */}
+      {isAddEntryOpen && (
+        <AdminAddEntryModal
+          key="admin-add-entry-modal"
+          isOpen={isAddEntryOpen}
+          onClose={() => setIsAddEntryOpen(false)}
+          onSuccess={(dealer, amount) => {
+            showToast(`Saved collection entry for ${dealer} (${formatINR(amount)})`);
+            loadDailyEntries();
+          }}
+          operators={operators}
+          currentDate={selectedDate}
+        />
+      )}
 
       {/* BACKUP & CLOUD SYNC HUB MODAL */}
       <BackupModal
@@ -2049,7 +2065,10 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Cash (₹)</label>
+                <label className="flex items-center gap-1.5 text-slate-400 mb-1">
+                  <CashBadge size="xs" />
+                  <span>Cash (₹)</span>
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -2061,7 +2080,10 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">PhonePe (₹)</label>
+                <label className="flex items-center gap-1.5 text-slate-400 mb-1">
+                  <UpiBadge size="xs" />
+                  <span>UPI (₹)</span>
+                </label>
                 <input
                   type="number"
                   min="0"

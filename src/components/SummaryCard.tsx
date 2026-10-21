@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatINR } from '../lib/formatters';
+import { CashBadge, UpiBadge } from './PaymentLogos';
 import { Banknote, Smartphone, IndianRupee } from 'lucide-react';
 
 interface SummaryCardsProps {
@@ -21,7 +22,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950 border border-emerald-500/20 p-4 shadow-glass hover:border-emerald-500/40 transition-all duration-200">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold text-emerald-400/90 tracking-wide uppercase flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <CashBadge size="xs" />
             Cash / నగదు
           </span>
           <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
@@ -34,12 +35,12 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
         <p className="text-[11px] text-slate-500 mt-1">Physical Currency Collected</p>
       </div>
 
-      {/* PhonePe Card */}
+      {/* UPI Card */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950 border border-purple-500/20 p-4 shadow-glass hover:border-purple-500/40 transition-all duration-200">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold text-purple-400/90 tracking-wide uppercase flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-            PhonePe / ఫోన్‌పే
+            <UpiBadge size="xs" />
+            UPI / యూపీఐ
           </span>
           <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
             <Smartphone className="w-4 h-4" />

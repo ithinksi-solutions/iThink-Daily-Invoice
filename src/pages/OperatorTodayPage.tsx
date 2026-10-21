@@ -7,6 +7,7 @@ import { Header } from '../components/Header';
 import { OperatorAddEntryModal } from './OperatorAddEntryModal';
 import { ImageCapture } from '../components/ImageCaptureModal';
 import { SavedToast } from '../components/SavedToast';
+import { CashBadge, UpiBadge } from '../components/PaymentLogos';
 import { formatAppDate, formatAppTime, formatINR, getCurrentISTDateString } from '../lib/formatters';
 import {
   Plus,
@@ -228,13 +229,13 @@ export const OperatorTodayPage: React.FC = () => {
 
           {/* Micro KPI Split Strip */}
           <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono font-bold">
-            <span className="text-emerald-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              Cash: {formatINR(cashTotal)}
+            <span className="text-emerald-400 flex items-center gap-1.5">
+              <CashBadge size="xs" />
+              <span>{formatINR(cashTotal)}</span>
             </span>
-            <span className="text-purple-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-              PhonePe: {formatINR(phonePeTotal)}
+            <span className="text-purple-400 flex items-center gap-1.5">
+              <UpiBadge size="xs" />
+              <span>{formatINR(phonePeTotal)}</span>
             </span>
             <span className="text-slate-400 text-[11px]">
               {filteredEntries.length} {filteredEntries.length === 1 ? 'Slip' : 'Slips'}
@@ -351,10 +352,16 @@ export const OperatorTodayPage: React.FC = () => {
                 <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2.5 text-[11px] font-mono">
                     {entry.cash_amount > 0 && (
-                      <span className="text-emerald-400">Cash: {formatINR(entry.cash_amount)}</span>
+                      <span className="text-emerald-400 flex items-center gap-1">
+                        <CashBadge size="xs" />
+                        <span>{formatINR(entry.cash_amount)}</span>
+                      </span>
                     )}
                     {entry.phonepe_amount > 0 && (
-                      <span className="text-purple-400">PhonePe: {formatINR(entry.phonepe_amount)}</span>
+                      <span className="text-purple-400 flex items-center gap-1">
+                        <UpiBadge size="xs" />
+                        <span>{formatINR(entry.phonepe_amount)}</span>
+                      </span>
                     )}
                   </div>
 
@@ -403,9 +410,10 @@ export const OperatorTodayPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Entry Modal */}
-      {sheetId && (
+      {/* Add Entry Modal (Unmounted when closed to guarantee virgin clean fields) */}
+      {sheetId && isAddModalOpen && (
         <OperatorAddEntryModal
+          key="operator-add-entry-modal"
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
           onSuccess={handleEntryAdded}

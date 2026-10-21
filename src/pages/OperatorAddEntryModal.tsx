@@ -5,6 +5,7 @@ import { useLanguage } from '../lib/i18n';
 import { BusinessName } from '../types/database';
 import { AutocompleteInput } from '../components/AutocompleteInput';
 import { ImageCapture } from '../components/ImageCaptureModal';
+import { CashBadge, UpiBadge } from '../components/PaymentLogos';
 import { formatINR } from '../lib/formatters';
 import { X, Sparkles, Building2, AlertCircle, Loader2 } from 'lucide-react';
 
@@ -35,6 +36,21 @@ export const OperatorAddEntryModal: React.FC<AddEntryModalProps> = ({
   const [saving, setSaving] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Guarantee a clean, virgin blank state on every open
+  useEffect(() => {
+    if (isOpen) {
+      setBusinessName('STAR');
+      setDealerName('');
+      setCashAmount('');
+      setPhonePeAmount('');
+      setBalanceOwed('');
+      setNote('');
+      setImageUrl(null);
+      setErrorMsg(null);
+      setSaving(false);
+    }
+  }, [isOpen]);
+
   // Hardware Back Button Dismissal Listener
   useEffect(() => {
     if (!isOpen) return;
@@ -62,7 +78,7 @@ export const OperatorAddEntryModal: React.FC<AddEntryModalProps> = ({
     }
 
     if (dynamicTotal <= 0) {
-      setErrorMsg('Please enter either Cash amount or PhonePe amount (or both)');
+      setErrorMsg('Please enter either Cash amount or UPI amount (or both)');
       return;
     }
 
@@ -74,13 +90,15 @@ export const OperatorAddEntryModal: React.FC<AddEntryModalProps> = ({
     setSaving(true);
     try {
       const parsedBalOwed = balanceOwed.trim() ? parseFloat(balanceOwed) : null;
+      const savedDealer = dealerName.trim();
+      const savedAmt = dynamicTotal;
 
       const { data, error } = await supabase
         .from('entries')
         .insert({
           sheet_id: sheetId,
           collector_id: user.id,
-          dealer_name: dealerName.trim(),
+          dealer_name: savedDealer,
           cash_amount: numCash,
           phonepe_amount: numPhonePe,
           balance_owed: parsedBalOwed,
@@ -99,20 +117,33 @@ export const OperatorAddEntryModal: React.FC<AddEntryModalProps> = ({
         return;
       }
 
-      // Reset and trigger callback
+      // Reset all inputs completely
       setDealerName('');
       setCashAmount('');
       setPhonePeAmount('');
       setBalanceOwed('');
       setNote('');
       setImageUrl(null);
+      setErrorMsg(null);
       setSaving(false);
-      onSuccess(dealerName, dynamicTotal);
+
+      onSuccess(savedDealer, savedAmt);
     } catch (err: any) {
       console.error('Submit error:', err);
       setErrorMsg(err.message || 'An unexpected error occurred');
       setSaving(false);
     }
+  };
+
+  const handleClose = () => {
+    setDealerName('');
+    setCashAmount('');
+    setPhonePeAmount('');
+    setBalanceOwed('');
+    setNote('');
+    setImageUrl(null);
+    setErrorMsg(null);
+    onClose();
   };
 
   return (
@@ -129,7 +160,7 @@ export const OperatorAddEntryModal: React.FC<AddEntryModalProps> = ({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -195,8 +226,9 @@ export const OperatorAddEntryModal: React.FC<AddEntryModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             {/* Cash */}
             <div>
-              <label className="block text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1.5">
-                {t('cash')} (₹)
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1.5">
+                <CashBadge size="sm" />
+                <span>{t('cash')} (₹)</span>
               </label>
               <div className="relative">
                 <input
@@ -212,10 +244,11 @@ export const OperatorAddEntryModal: React.FC<AddEntryModalProps> = ({
               </div>
             </div>
 
-            {/* PhonePe */}
+            {/* UPI (PhonePe/GPay/Paytm) */}
             <div>
-              <label className="block text-xs font-semibold text-purple-400 uppercase tracking-wider mb-1.5">
-                {t('phonepe')} (₹)
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-purple-400 uppercase tracking-wider mb-1.5">
+                <UpiBadge size="sm" />
+                <span>{t('phonepe')} (₹)</span>
               </label>
               <div className="relative">
                 <input
