@@ -20,7 +20,7 @@ export const LoginPage: React.FC = () => {
   const { signIn } = useAuth();
   const { language, setLanguage, t } = useLanguage();
 
-  const [email, setEmail] = useState<string>('');
+  const [email, setEmail] = useState<string>(() => localStorage.getItem('last_login_email') || 'admin@ithinkai.in');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -42,6 +42,8 @@ export const LoginPage: React.FC = () => {
       if (error) {
         setErrorMsg(error.message || 'Invalid email or password. Please verify your credentials.');
         setLoading(false);
+      } else {
+        localStorage.setItem('last_login_email', email.trim());
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Connection error. Please try again.');
@@ -205,9 +207,20 @@ export const LoginPage: React.FC = () => {
               {/* Secure Form Controls (No hardcoded credentials, optimized for touch keyboards) */}
               <form className="mt-5 space-y-4" onSubmit={handleSubmit} noValidate>
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    {t('email')}
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                      {t('email')}
+                    </label>
+                    {email !== 'admin@ithinkai.in' && (
+                      <button
+                        type="button"
+                        onClick={() => setEmail('admin@ithinkai.in')}
+                        className="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold cursor-pointer"
+                      >
+                        Reset Admin
+                      </button>
+                    )}
+                  </div>
                   <div className="relative">
                     <input
                       type="email"
@@ -220,9 +233,46 @@ export const LoginPage: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full px-3.5 py-3 pl-10 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-medium transition-all"
-                      placeholder="e.g. operator1@ithinkai.in"
+                      placeholder="e.g. admin@ithinkai.in"
                     />
                     <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  {/* Fast 1-Tap Account Selector (Zero Typing on Mobile) */}
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setEmail('admin@ithinkai.in')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        email === 'admin@ithinkai.in'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm'
+                          : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      Admin
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEmail('operator1@ithinkai.in')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        email === 'operator1@ithinkai.in'
+                          ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40 shadow-sm'
+                          : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      Operator 1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEmail('operator2@ithinkai.in')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        email === 'operator2@ithinkai.in'
+                          ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40 shadow-sm'
+                          : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      Operator 2
+                    </button>
                   </div>
                 </div>
 
