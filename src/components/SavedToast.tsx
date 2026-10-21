@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import confetti from 'canvas-confetti';
 import { CheckCircle2, X } from 'lucide-react';
 import { formatINR } from '../lib/formatters';
 
@@ -27,15 +26,7 @@ export const SavedToast: React.FC<SavedToastProps> = ({
         }
       }
 
-      // 2. Delight micro-confetti
-      confetti({
-        particleCount: 35,
-        spread: 60,
-        origin: { y: 0.8 },
-        colors: ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0'],
-      });
-
-      // 3. Auto-dismiss timer
+      // 2. Auto-dismiss timer
       const timer = setTimeout(() => {
         onClose();
       }, 2600);

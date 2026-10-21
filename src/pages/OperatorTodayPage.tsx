@@ -151,7 +151,7 @@ export const OperatorTodayPage: React.FC = () => {
       {/* 1. STYLISH TOP HEADER (1 LINE: DAILY INVOICE) */}
       <Header />
 
-      {/* Success Confetti Toast */}
+      {/* Success Notification Toast */}
       <SavedToast
         show={savedToastInfo.show}
         dealerName={savedToastInfo.dealer}
