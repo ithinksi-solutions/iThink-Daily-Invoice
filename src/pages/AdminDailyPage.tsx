@@ -446,6 +446,8 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
           note: editNote.trim() || null,
           business_name: editBusiness,
           note_audit: editReason.trim(),
+          updated_by: user?.id,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', editingEntry.id);
 
@@ -1547,9 +1549,17 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                         )}
                       </td>
 
-                      {/* Note */}
-                      <td className="py-2.5 px-3 text-slate-400 truncate max-w-[150px]" title={e.note || ''}>
-                        {e.note || '-'}
+                      {/* Note / Audit */}
+                      <td className="py-2.5 px-3 text-slate-400 max-w-[170px]" title={e.note_audit ? `Audit: ${e.note_audit} | Note: ${e.note || ''}` : (e.note || '')}>
+                        <div className="flex flex-col gap-0.5">
+                          {e.note && <span className="text-slate-300 text-xs truncate">{e.note}</span>}
+                          {e.note_audit && (
+                            <span className="text-amber-400/90 text-[11px] font-mono truncate flex items-center gap-1" title={e.note_audit}>
+                              ✎ {e.note_audit}
+                            </span>
+                          )}
+                          {!e.note && !e.note_audit && <span className="text-slate-600 font-mono text-[11px]">-</span>}
+                        </div>
                       </td>
 
                       {/* Status / Money Received Interactive Checkbox */}
@@ -1692,6 +1702,12 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                     </div>
 
                     {e.note && <p className="text-[11px] text-slate-400 italic">"{e.note}"</p>}
+                    {e.note_audit && (
+                      <p className="text-[11px] text-amber-400/90 font-mono flex items-center gap-1">
+                        <span>✎ Audit:</span>
+                        <span className="italic">{e.note_audit}</span>
+                      </p>
+                    )}
 
                     <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2 text-[11px] font-mono">

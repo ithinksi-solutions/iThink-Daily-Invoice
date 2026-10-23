@@ -41,6 +41,7 @@ export interface Entry {
   deleted_at?: string | null;
   deleted_by?: string | null;
   collector_name?: string;
+  note_audit?: string | null;
 }
 
 export interface EntryAuditLog {
