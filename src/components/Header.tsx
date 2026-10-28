@@ -89,14 +89,15 @@ export const Header: React.FC<HeaderProps> = ({ currentTab = 'daily', onTabChang
           </button>
         </div>
 
-        {/* Sign Out Button (Touch target >= 44px) */}
+        {/* Sign Out Button */}
         <button
           type="button"
           onClick={signOut}
           title={t('signOut')}
-          className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
+          className="min-h-[36px] px-2.5 py-1 text-xs font-bold rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-sm"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-3.5 h-3.5 text-rose-400" />
+          <span className="hidden xs:inline sm:inline">Logout</span>
         </button>
       </div>
 

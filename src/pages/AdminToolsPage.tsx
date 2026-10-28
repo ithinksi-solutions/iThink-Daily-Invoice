@@ -254,10 +254,11 @@ export const AdminToolsPage: React.FC<AdminToolsPageProps> = ({ onNavigateTab })
           <button
             type="button"
             onClick={signOut}
-            className="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded-lg transition-colors"
-            title="Sign Out"
+            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-sm"
+            title="Sign Out / Log Out"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-3.5 h-3.5 text-rose-400" />
+            <span>Logout</span>
           </button>
         </div>
       </header>

@@ -634,8 +634,8 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             </button>
           </div>
 
-          {/* Business Filter Pills */}
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[11px] font-bold shadow-sm">
+          {/* Business Filter Pills (Visible on large displays 2xl to prevent header overflow) */}
+          <div className="hidden 2xl:flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[11px] font-bold shadow-sm">
             <button
               type="button"
               onClick={() => setSelectedBusiness('ALL')}
@@ -682,9 +682,9 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             className="px-2.5 sm:px-3 py-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
             title="Upload physical handwritten slip, extract entries, and verify with Human-In-The-Loop review"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t('digitizeSlip')}</span>
-            <span className="sm:hidden">Slip</span>
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden xl:inline">{t('digitizeSlip')}</span>
+            <span className="xl:hidden">Slip</span>
           </button>
 
           {/* Direct Manual Entry Button (Desktop) */}
@@ -705,40 +705,40 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             className="px-2 sm:px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 hover:bg-teal-500/25 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
             title="View All Uploaded Slips for this Date"
           >
-            <Camera className="w-3.5 h-3.5 text-teal-400" />
-            <span className="hidden lg:inline">{t('daySlips')}</span>
+            <Camera className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+            <span className="hidden 2xl:inline">{t('daySlips')}</span>
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-black bg-teal-400 text-slate-950">
               {daySlipsCount}
             </span>
           </button>
 
-          {/* Direct Backup Hub Button */}
+          {/* Direct Backup Hub Button (Available in Tools tab, visible on 2xl) */}
           <button
             type="button"
             onClick={() => setIsBackupOpen(true)}
-            className="hidden sm:flex px-2 sm:px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-            title="Download Backup & Cloud Sync"
+            className="hidden 2xl:flex px-2 sm:px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            title="Download Backup & Cloud Sync (Also in Tools tab)"
           >
             <Database className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden md:inline">{t('backup')}</span>
+            <span>{t('backup')}</span>
           </button>
 
-          {/* Custom Date Range Purge Button (Admin Only) */}
+          {/* Custom Date Range Purge Button (Available in Tools tab, visible on 2xl) */}
           <button
             type="button"
             onClick={() => setIsRangeDeleteOpen(true)}
-            className="hidden md:flex px-2 sm:px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 hover:bg-rose-500/25 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-            title="Purge / Delete Records by Date Range"
+            className="hidden 2xl:flex px-2 sm:px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 hover:bg-rose-500/25 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            title="Purge / Delete Records by Date Range (Also in Tools tab)"
           >
             <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-            <span className="hidden xl:inline">Purge Range</span>
+            <span>Purge Range</span>
           </button>
 
-          {/* Export Excel (Desktop) */}
+          {/* Export Excel (Desktop - Visible on 2xl) */}
           <button
             type="button"
             onClick={handleExportExcel}
-            className="hidden lg:flex px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-600 hover:text-white border border-slate-700 text-slate-200 text-xs font-bold items-center gap-1 transition-all"
+            className="hidden 2xl:flex px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-600 hover:text-white border border-slate-700 text-slate-200 text-xs font-bold items-center gap-1 transition-all"
             title="Download Excel for Selected Date"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
@@ -756,7 +756,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
           </button>
 
           {/* Language Toggle */}
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-0.5 flex items-center">
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-0.5 flex items-center shrink-0">
             <button
               type="button"
               onClick={() => setLanguage('en')}
@@ -777,14 +777,15 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             </button>
           </div>
 
-          {/* Sign Out */}
+          {/* Sign Out (Clearly Visible Red Pill with Label) */}
           <button
             type="button"
             onClick={signOut}
-            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
-            title="Sign Out"
+            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-sm"
+            title="Sign Out / Log Out"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-3.5 h-3.5 text-rose-400" />
+            <span>Logout</span>
           </button>
         </div>
 
@@ -1884,6 +1885,15 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
         >
           <span className="text-cyan-400 text-xs font-black">⚡</span>
           <span>Tasks</span>
+        </button>
+        <button
+          type="button"
+          onClick={signOut}
+          className="flex-1 py-1.5 flex flex-col items-center gap-0.5 text-[11px] font-bold rounded-xl text-rose-400 hover:text-rose-300 transition-all cursor-pointer"
+          title="Sign Out"
+        >
+          <LogOut className="w-4 h-4 text-rose-400" />
+          <span>Exit</span>
         </button>
       </nav>
 
