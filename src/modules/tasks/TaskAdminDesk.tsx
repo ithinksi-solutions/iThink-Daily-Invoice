@@ -23,6 +23,8 @@ import {
   Activity,
   Sliders,
   ChevronDown,
+  Shield,
+  Filter,
 } from 'lucide-react';
 
 interface TaskAdminDeskProps {
@@ -35,13 +37,11 @@ export const TaskAdminDesk: React.FC<TaskAdminDeskProps> = ({ currentView }) => 
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
-  // Omnibar State
+  // New Task Form State (Simple & Human Friendly)
   const [omnibarText, setOmnibarText] = useState<string>('');
   const [selectedAssignee, setSelectedAssignee] = useState<string>('');
   const [selectedDueDate, setSelectedDueDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [selectedPriority, setSelectedPriority] = useState<TaskPriority>('normal');
-  const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState<string>('');
   const [creating, setCreating] = useState<boolean>(false);
 
   // Filter State
@@ -94,7 +94,7 @@ export const TaskAdminDesk: React.FC<TaskAdminDeskProps> = ({ currentView }) => 
     setRefreshing(false);
   };
 
-  // Live KPI Calculations
+  // Metrics
   const metrics = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     const total = tasks.length;
@@ -102,42 +102,8 @@ export const TaskAdminDesk: React.FC<TaskAdminDeskProps> = ({ currentView }) => 
     const pending = tasks.filter((t) => t.status === 'pending').length;
     const overdue = tasks.filter((t) => t.status === 'pending' && t.due_date < todayStr).length;
 
-    const onTime = tasks.filter(
-      (t) => t.status === 'completed' && t.completed_at && t.completed_at.split('T')[0] <= t.due_date
-    ).length;
-
-    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const onTimeRate = completed > 0 ? Math.round((onTime / completed) * 100) : 100;
-
-    return { total, completed, pending, overdue, completionRate, onTimeRate };
+    return { total, completed, pending, overdue };
   }, [tasks]);
-
-  // Omnibar Natural Language Sync
-  const handleOmnibarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setOmnibarText(val);
-
-    // Auto-parse if contains @ or # or dates
-    if (val.includes('@') || val.includes('#') || /tomorrow|today/i.test(val)) {
-      const parsed = taskService.parseNaturalLanguageTask(val, roster);
-      if (parsed.assigneeUserId) setSelectedAssignee(parsed.assigneeUserId);
-      if (parsed.dueDate) setSelectedDueDate(parsed.dueDate);
-      if (parsed.priority !== 'normal') setSelectedPriority(parsed.priority);
-      if (parsed.tags.length > 0) setActiveTags(Array.from(new Set([...activeTags, ...parsed.tags])));
-    }
-  };
-
-  const handleAddTag = (tagToAdd: string) => {
-    const clean = tagToAdd.replace('#', '').trim();
-    if (clean && !activeTags.includes(clean)) {
-      setActiveTags([...activeTags, clean]);
-    }
-    setTagInput('');
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setActiveTags(activeTags.filter((t) => t !== tagToRemove));
-  };
 
   // Submit New Task
   const handleCreateTask = async (e: React.FormEvent) => {
@@ -152,15 +118,34 @@ export const TaskAdminDesk: React.FC<TaskAdminDeskProps> = ({ currentView }) => 
       assigned_to: selectedAssignee,
       due_date: selectedDueDate,
       priority: selectedPriority,
-      tags: activeTags,
+      tags: parsed.tags || [],
     });
 
     if (!error && data) {
       setOmnibarText('');
-      setActiveTags([]);
       await loadData();
     }
     setCreating(false);
+  };
+
+  // 1-Tap Toggle Task Completion (Admin can check/uncheck right from table row)
+  const handleToggleTaskStatus = async (task: EnterpriseTask) => {
+    const willComplete = task.status !== 'completed';
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id
+          ? {
+              ...t,
+              status: willComplete ? 'completed' : 'pending',
+              completed_at: willComplete ? new Date().toISOString() : null,
+            }
+          : t
+      )
+    );
+    const { error } = await taskService.toggleTaskCompletion(task.id, willComplete);
+    if (error) {
+      loadData();
+    }
   };
 
   // Save Inline Custom Name / Alias
@@ -254,427 +239,359 @@ export const TaskAdminDesk: React.FC<TaskAdminDeskProps> = ({ currentView }) => 
   return (
     <div className="flex-1 flex flex-col bg-[#07090E] text-slate-100 overflow-y-auto">
       
-      {/* VIEW 1: TASK OPERATIONS COMMAND */}
+      {/* VIEW 1: TASK OPERATIONS (SIMPLE & INTUITIVE FOR ANY CLIENT) */}
       {currentView === 'tasks' ? (
-        <div className="flex-1 w-full max-w-7xl mx-auto p-3.5 sm:p-6 space-y-5">
+        <div className="flex-1 w-full max-w-7xl mx-auto p-3 sm:p-5 space-y-4">
           
-          {/* 1. OPERATIONS RADAR (KPI STRIP WITH CYBERNETIC DIALS) */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            
-            {/* Total Operations */}
-            <div className="p-4 rounded-2xl bg-[#0D121F]/90 border border-indigo-500/25 relative overflow-hidden group shadow-lg shadow-indigo-950/30">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
-              <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                <span>TOTAL OPERATIONS</span>
-                <Layers className="w-4 h-4 text-indigo-400" />
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl sm:text-3xl font-black text-white font-mono">{metrics.total}</span>
-                <span className="text-[11px] text-slate-400">Tasks logged</span>
-              </div>
-            </div>
+          {/* 1. TOP SUMMARY BAR (COMPACT & SIMPLE) */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0C101C] border border-slate-800 rounded-2xl p-3 px-4 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+              <span className="font-bold text-slate-400 uppercase tracking-wider text-[11px]">Tasks Status:</span>
+              
+              <span className="px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-white flex items-center gap-1.5">
+                <span>Total:</span>
+                <strong className="text-cyan-400 font-mono text-sm">{metrics.total}</strong>
+              </span>
 
-            {/* On-Time Compliance Rate */}
-            <div className="p-4 rounded-2xl bg-[#0D121F]/90 border border-emerald-500/25 relative overflow-hidden group shadow-lg shadow-emerald-950/30">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
-              <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                <span>ON-TIME COMPLIANCE</span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl sm:text-3xl font-black text-emerald-300 font-mono">{metrics.onTimeRate}%</span>
-                <span className="text-[11px] text-emerald-400/80 font-mono">Punctual</span>
-              </div>
-            </div>
+              <span className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Pending:</span>
+                <strong className="font-mono text-sm">{metrics.pending}</strong>
+              </span>
 
-            {/* Pending Today */}
-            <div className="p-4 rounded-2xl bg-[#0D121F]/90 border border-cyan-500/25 relative overflow-hidden group shadow-lg shadow-cyan-950/30">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full blur-xl group-hover:bg-cyan-500/20 transition-all pointer-events-none" />
-              <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                <span>PENDING QUEUE</span>
-                <Clock className="w-4 h-4 text-cyan-400" />
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl sm:text-3xl font-black text-cyan-300 font-mono">{metrics.pending}</span>
-                <span className="text-[11px] text-slate-400">Awaiting checkoff</span>
-              </div>
-            </div>
+              <span className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Completed:</span>
+                <strong className="font-mono text-sm">{metrics.completed}</strong>
+              </span>
 
-            {/* Critical Overdue Alert */}
-            <div className={`p-4 rounded-2xl bg-[#0D121F]/90 border relative overflow-hidden group shadow-lg ${
-              metrics.overdue > 0
-                ? 'border-rose-500/50 shadow-rose-950/40'
-                : 'border-slate-800 shadow-slate-950/20'
-            }`}>
-              <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                <span>OVERDUE ALERT</span>
-                <AlertTriangle className={`w-4 h-4 ${metrics.overdue > 0 ? 'text-rose-400 animate-bounce' : 'text-slate-500'}`} />
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className={`text-2xl sm:text-3xl font-black font-mono ${metrics.overdue > 0 ? 'text-rose-400' : 'text-slate-400'}`}>
-                  {metrics.overdue}
+              {metrics.overdue > 0 && (
+                <span className="px-2.5 py-1 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs font-bold text-rose-400 flex items-center gap-1.5 animate-pulse">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Overdue:</span>
+                  <strong className="font-mono text-sm">{metrics.overdue}</strong>
                 </span>
-                <span className="text-[11px] text-slate-400">Requires attention</span>
-              </div>
+              )}
             </div>
 
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-1.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+              title="Refresh Task List"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-cyan-400' : ''}`} />
+              <span>Refresh</span>
+            </button>
           </div>
 
-          {/* 2. SMART OMNIBAR (ULTRA-FAST NATURAL LANGUAGE ASSIGNMENT) */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-b from-[#0F1424] to-[#0A0D18] border border-indigo-500/30 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-indigo-500/20">
-              <div className="flex items-center gap-2 text-xs font-bold text-indigo-300 uppercase tracking-wider">
-                <Sparkles className="w-4 h-4 text-cyan-400" />
-                <span>Fast Smart Omnibar (Natural Text / Voice Input)</span>
-              </div>
-              <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">
-                Supports: <code className="text-cyan-400 font-bold">@User1</code> <code className="text-indigo-400 font-bold">#Tag</code> <code className="text-amber-400 font-bold">tomorrow</code>
-              </span>
-            </div>
+          {/* 2. SUPER-SIMPLE TASK ASSIGNMENT BAR */}
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-[#0C101C] via-[#0E1424] to-[#0C101C] border border-indigo-500/30 shadow-md">
+            <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Assign New Task</span>
+            </h3>
 
-            <form onSubmit={handleCreateTask} className="space-y-3.5">
+            <form onSubmit={handleCreateTask} className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
               
-              {/* Primary Omnibar Input */}
-              <div className="relative">
+              {/* Task Title */}
+              <div className="flex-1 min-w-[220px]">
                 <input
                   type="text"
                   value={omnibarText}
-                  onChange={handleOmnibarChange}
-                  placeholder="e.g. Insurance renewal for AP04 fleet by tomorrow @User1 #Compliance #Fleet"
-                  className="w-full py-3.5 pl-4 pr-12 bg-[#06080F] border border-indigo-500/40 rounded-2xl text-white placeholder-slate-500 text-sm sm:text-base font-medium focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner"
+                  onChange={(e) => setOmnibarText(e.target.value)}
+                  placeholder="Enter task... (e.g. Renew insurance for AP04 truck, Service vehicle, Collect payment)"
+                  className="w-full py-2.5 px-3.5 bg-[#06080F] border border-slate-700 rounded-xl text-white placeholder-slate-500 text-xs sm:text-sm font-medium focus:outline-none focus:border-cyan-400"
                   required
                 />
-                <button
-                  type="submit"
-                  disabled={creating || !omnibarText.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-400 text-slate-950 font-black hover:brightness-110 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-md"
-                  title="Assign Task"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
               </div>
 
-              {/* Dynamic Task Controls Bar */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
-                
-                {/* Assignee Selector with Custom Aliases */}
-                <div className="sm:col-span-1">
-                  <label className="block text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Assignee
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={selectedAssignee}
-                      onChange={(e) => setSelectedAssignee(e.target.value)}
-                      className="w-full p-2.5 bg-[#06080F] border border-slate-700/80 rounded-xl text-white font-medium text-xs focus:outline-none focus:border-indigo-500 cursor-pointer appearance-none"
-                    >
-                      {roster
-                        .filter((u) => u.role !== 'admin')
-                        .map((u) => (
-                          <option key={u.user_id} value={u.user_id}>
-                            {u.custom_alias || u.full_name} ({u.full_name})
-                          </option>
-                        ))}
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                </div>
-
-                {/* Due Date Selector */}
-                <div>
-                  <label className="block text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Due Date
-                  </label>
-                  <input
-                    type="date"
-                    value={selectedDueDate}
-                    onChange={(e) => setSelectedDueDate(e.target.value)}
-                    className="w-full p-2 bg-[#06080F] border border-slate-700/80 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                {/* Priority Selector */}
-                <div>
-                  <label className="block text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Priority
-                  </label>
-                  <select
-                    value={selectedPriority}
-                    onChange={(e) => setSelectedPriority(e.target.value as TaskPriority)}
-                    className="w-full p-2.5 bg-[#06080F] border border-slate-700/80 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500 cursor-pointer"
-                  >
-                    <option value="normal">🟡 Normal</option>
-                    <option value="high">🟠 High</option>
-                    <option value="critical">🔴 Critical</option>
-                    <option value="low">🔵 Low</option>
-                  </select>
-                </div>
-
-                {/* Custom Quick Tag Input */}
-                <div>
-                  <label className="block text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Add Tags
-                  </label>
-                  <div className="flex gap-1.5">
-                    <input
-                      type="text"
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddTag(tagInput);
-                        }
-                      }}
-                      placeholder="#Tag + Enter"
-                      className="w-full p-2 bg-[#06080F] border border-slate-700/80 rounded-xl text-white text-xs placeholder-slate-600 focus:outline-none focus:border-indigo-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleAddTag(tagInput)}
-                      className="px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Quick Tag Chips & Presets */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[11px] font-mono text-slate-500 mr-1">Quick Presets:</span>
-                {['#Fleet', '#Maintenance', '#Bank', '#Compliance', '#Logistics', '#ClientVisit'].map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => handleAddTag(preset)}
-                    className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-indigo-950/40 text-indigo-300 border border-indigo-500/30 hover:border-cyan-400 transition-colors"
-                  >
-                    {preset}
-                  </button>
-                ))}
-
-                {activeTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-cyan-950/50 text-cyan-300 border border-cyan-400/40 flex items-center gap-1"
-                  >
-                    #{tag}
-                    <button type="button" onClick={() => handleRemoveTag(tag)} className="hover:text-rose-400">
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-
-            </form>
-          </div>
-
-          {/* 3. MASTER OPERATIONS PIPELINE (TASK LIST) */}
-          <div className="space-y-3">
-            
-            {/* Filter & Search Bar */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-2 border-b border-slate-800">
-              
-              {/* Status Filter Tabs */}
-              <div className="flex items-center gap-1 bg-[#0A0E18] border border-slate-800 rounded-xl p-1 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setFilterStatus('all')}
-                  className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                    filterStatus === 'all' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  All ({tasks.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterStatus('pending')}
-                  className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                    filterStatus === 'pending' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Pending ({metrics.pending})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterStatus('overdue')}
-                  className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                    filterStatus === 'overdue' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Overdue ({metrics.overdue})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterStatus('completed')}
-                  className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                    filterStatus === 'completed' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Completed ({metrics.completed})
-                </button>
-              </div>
-
-              {/* Worker & Search Controls */}
-              <div className="flex items-center gap-2">
+              {/* Assignee Dropdown */}
+              <div className="w-full md:w-56">
                 <select
-                  value={filterUser}
-                  onChange={(e) => setFilterUser(e.target.value)}
-                  className="px-2.5 py-1.5 bg-[#0A0E18] border border-slate-800 rounded-xl text-xs text-slate-300 font-medium"
+                  value={selectedAssignee}
+                  onChange={(e) => setSelectedAssignee(e.target.value)}
+                  className="w-full py-2.5 px-3 bg-[#06080F] border border-slate-700 rounded-xl text-white text-xs font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
                 >
-                  <option value="all">All Frontline Workers</option>
+                  <option value="" disabled>Select Staff / User</option>
                   {roster
                     .filter((u) => u.role !== 'admin')
                     .map((u) => (
                       <option key={u.user_id} value={u.user_id}>
-                        {u.custom_alias || u.full_name}
+                        {u.custom_alias || u.full_name} ({u.full_name})
                       </option>
                     ))}
                 </select>
+              </div>
 
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tasks..."
-                    className="py-1.5 pl-8 pr-3 bg-[#0A0E18] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-36 sm:w-48"
-                  />
-                  <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+              {/* Due Date Picker */}
+              <div className="w-full md:w-40">
+                <input
+                  type="date"
+                  value={selectedDueDate}
+                  onChange={(e) => setSelectedDueDate(e.target.value)}
+                  className="w-full py-2.5 px-3 bg-[#06080F] border border-slate-700 rounded-xl text-white text-xs font-mono font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
+                  title="Due Date"
+                />
+              </div>
 
+              {/* Priority */}
+              <div className="w-full md:w-32">
+                <select
+                  value={selectedPriority}
+                  onChange={(e) => setSelectedPriority(e.target.value as TaskPriority)}
+                  className="w-full py-2.5 px-2.5 bg-[#06080F] border border-slate-700 rounded-xl text-white text-xs font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
+                >
+                  <option value="normal">🟡 Normal</option>
+                  <option value="high">🟠 High</option>
+                  <option value="critical">🔴 Urgent</option>
+                  <option value="low">🔵 Low</option>
+                </select>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={creating || !omnibarText.trim()}
+                className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-black text-xs hover:brightness-110 active:scale-95 transition-all shadow-md shrink-0 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 min-h-[40px]"
+                title="Assign Task"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>+ Assign</span>
+              </button>
+            </form>
+          </div>
+
+          {/* 3. FILTER TABS & SEARCH (CLEAN & SIMPLE) */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
+            
+            {/* Status Filter Pills */}
+            <div className="flex items-center gap-1.5 bg-[#0C101C] border border-slate-800 rounded-xl p-1 overflow-x-auto no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setFilterStatus('all')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer ${
+                  filterStatus === 'all'
+                    ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-slate-950 font-black shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                All ({metrics.total})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterStatus('pending')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer ${
+                  filterStatus === 'pending'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Pending ({metrics.pending})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterStatus('completed')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer ${
+                  filterStatus === 'completed'
+                    ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Completed ({metrics.completed})
+              </button>
+              {metrics.overdue > 0 && (
                 <button
                   type="button"
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-colors"
-                  title="Refresh tasks"
+                  onClick={() => setFilterStatus('overdue')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer ${
+                    filterStatus === 'overdue'
+                      ? 'bg-rose-500 text-white font-black shadow-sm'
+                      : 'text-rose-400 hover:text-rose-300'
+                  }`}
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-cyan-400' : ''}`} />
+                  Overdue ({metrics.overdue})
                 </button>
-              </div>
-
+              )}
             </div>
 
-            {/* Task Cards Grid */}
+            {/* User Filter + Search Box */}
+            <div className="flex items-center gap-2">
+              <select
+                value={filterUser}
+                onChange={(e) => setFilterUser(e.target.value)}
+                className="py-1.5 px-2.5 bg-[#0C101C] border border-slate-800 rounded-xl text-slate-300 text-xs font-bold focus:outline-none focus:border-cyan-400 cursor-pointer"
+              >
+                <option value="all">All Staff Members</option>
+                {roster
+                  .filter((u) => u.role !== 'admin')
+                  .map((u) => (
+                    <option key={u.user_id} value={u.user_id}>
+                      {u.custom_alias || u.full_name}
+                    </option>
+                  ))}
+              </select>
+
+              <div className="relative flex-1 sm:w-52">
+                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search task..."
+                  className="w-full py-1.5 pl-8 pr-3 bg-[#0C101C] border border-slate-800 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+            </div>
+
+          </div>
+
+          {/* 4. THE SINGLE-LINE TASK LIST / TABLE (REQUESTED BY USER) */}
+          <div className="bg-[#0C101C] border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+            
+            {/* Table Header Row (Desktop) */}
+            <div className="hidden md:grid md:grid-cols-12 gap-3 px-4 py-2.5 bg-[#080B14] border-b border-slate-800 text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+              <div className="col-span-1 flex items-center">Status</div>
+              <div className="col-span-5 flex items-center">Task Description</div>
+              <div className="col-span-2 flex items-center">Assigned Staff</div>
+              <div className="col-span-2 flex items-center">Due Date</div>
+              <div className="col-span-2 flex items-center justify-end">Actions</div>
+            </div>
+
+            {/* Task Rows */}
             {loading ? (
-              <div className="py-16 text-center text-slate-500 font-mono text-xs flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
-                <span>Loading operational pipeline...</span>
+              <div className="py-16 text-center space-y-2">
+                <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                <div className="text-xs text-slate-400 font-mono">Loading tasks...</div>
               </div>
             ) : filteredTasks.length === 0 ? (
-              <div className="py-16 text-center rounded-3xl bg-[#090D17]/80 border border-slate-800/80 p-8 space-y-2">
+              <div className="py-16 text-center p-8 space-y-2">
                 <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-                <h4 className="text-sm font-bold text-white">All Clear in this View</h4>
+                <h4 className="text-sm font-bold text-white">No Tasks Found</h4>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  No operational tasks match your selected filters. Use the Omnibar above to assign new tasks.
+                  {searchQuery ? 'No tasks matched your search query.' : 'Use the form above to assign a task.'}
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              <div className="divide-y divide-slate-800/80">
                 {filteredTasks.map((t) => {
                   const todayStr = new Date().toISOString().split('T')[0];
                   const isOverdue = t.status === 'pending' && t.due_date < todayStr;
                   const isDone = t.status === 'completed';
+                  const isToday = t.due_date === todayStr;
 
                   return (
                     <div
                       key={t.id}
-                      className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 ${
+                      className={`px-4 py-3 flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-3 items-start md:items-center transition-colors ${
                         isDone
-                          ? 'bg-[#0A101C]/70 border-emerald-500/25'
+                          ? 'bg-[#090D17]/40 hover:bg-[#0B101D]'
                           : isOverdue
-                          ? 'bg-[#150B10]/80 border-rose-500/40 shadow-lg shadow-rose-950/20'
-                          : 'bg-[#0C101C]/90 border-slate-800/90 hover:border-indigo-500/40 shadow-md'
+                          ? 'bg-rose-950/15 hover:bg-rose-950/25'
+                          : 'hover:bg-slate-900/60'
                       }`}
                     >
-                      {/* Card Header: Assignee + Priority Badge */}
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-indigo-950/50 border border-indigo-500/30 text-indigo-300 text-[11px] font-mono font-bold truncate max-w-[65%]">
-                          <User className="w-3 h-3 text-cyan-400 shrink-0" />
-                          <span className="truncate">{t.assignee_alias || t.assignee_name}</span>
-                        </span>
-
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider ${
-                            t.priority === 'critical'
-                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse'
-                              : t.priority === 'high'
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                              : 'bg-slate-800 text-slate-300 border border-slate-700'
+                      {/* 1. Status Checkbox (1-Tap Toggle) */}
+                      <div className="md:col-span-1 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTaskStatus(t)}
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                            isDone
+                              ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                              : 'bg-slate-900 border border-slate-700 text-slate-400 hover:border-cyan-400 hover:text-cyan-400'
                           }`}
+                          title={isDone ? 'Click to mark Pending' : 'Click to mark Completed'}
                         >
-                          {t.priority}
+                          {isDone ? <Check className="w-4 h-4 stroke-[3]" /> : <Clock className="w-3.5 h-3.5" />}
+                        </button>
+                        <span className={`text-[11px] font-bold md:hidden ${isDone ? 'text-emerald-400' : 'text-amber-400'}`}>
+                          {isDone ? 'Completed' : 'Pending'}
                         </span>
                       </div>
 
-                      {/* Card Body: Title & Tags */}
-                      <div>
-                        <h4 className={`text-sm font-bold tracking-tight ${isDone ? 'line-through text-slate-400' : 'text-white'}`}>
-                          {t.task_title}
-                        </h4>
-                        {t.description && (
-                          <p className="mt-1 text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                            {t.description}
-                          </p>
-                        )}
-
-                        {t.tags && t.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {t.tags.map((tag) => (
-                              <span key={tag} className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-slate-900 border border-slate-800 text-slate-400">
-                                #{tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Card Footer: Due Date / Completed Timestamp & Actions */}
-                      <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                        
-                        {/* Status Timestamp */}
-                        <div>
-                          {isDone ? (
-                            <span className="text-emerald-400 font-mono text-[11px] flex items-center gap-1 font-bold">
-                              <Check className="w-3 h-3" />
-                              <span>Done: {t.completed_at ? t.completed_at.split('T')[0] : 'Completed'}</span>
+                      {/* 2. Task Description (Single Horizontal Line) */}
+                      <div className="md:col-span-5 min-w-0 w-full">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-sm font-bold tracking-tight truncate ${
+                              isDone ? 'line-through text-slate-400' : 'text-white'
+                            }`}
+                            title={t.task_title}
+                          >
+                            {t.task_title}
+                          </span>
+                          {t.priority === 'critical' && (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 shrink-0">
+                              Urgent
                             </span>
-                          ) : isOverdue ? (
-                            <span className="text-rose-400 font-mono text-[11px] font-bold flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              <span>Overdue ({t.due_date})</span>
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 font-mono text-[11px] flex items-center gap-1">
-                              <Calendar className="w-3 h-3 text-indigo-400" />
-                              <span>Due: {t.due_date}</span>
+                          )}
+                          {t.priority === 'high' && (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                              High
                             </span>
                           )}
                         </div>
+                        {t.description && (
+                          <p className="text-xs text-slate-400 truncate mt-0.5">{t.description}</p>
+                        )}
+                      </div>
 
-                        {/* Admin Action Buttons */}
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleStartEdit(t)}
-                            className="p-1 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors"
-                            title="Edit Task"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteTask(t.id, t.task_title)}
-                            className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
-                            title="Delete Task"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      {/* 3. Assigned Staff Pill */}
+                      <div className="md:col-span-2 flex items-center">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-xs font-bold truncate max-w-full">
+                          <User className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                          <span className="truncate">{t.assignee_alias || t.assignee_name}</span>
+                        </span>
+                      </div>
 
+                      {/* 4. Due Date / Status */}
+                      <div className="md:col-span-2 flex items-center gap-1.5 text-xs font-mono">
+                        {isDone ? (
+                          <span className="text-emerald-400 font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span>
+                              Done {t.completed_at ? new Date(t.completed_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''}
+                            </span>
+                          </span>
+                        ) : isOverdue ? (
+                          <span className="px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center gap-1 animate-pulse">
+                            <AlertTriangle className="w-3 h-3 text-rose-400 shrink-0" />
+                            <span>Overdue ({t.due_date})</span>
+                          </span>
+                        ) : isToday ? (
+                          <span className="px-2 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-bold flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-cyan-400 shrink-0" />
+                            <span>Due Today</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span>{t.due_date}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 5. Actions (Edit & Delete) */}
+                      <div className="md:col-span-2 flex items-center justify-end gap-1.5 w-full md:w-auto pt-1 md:pt-0 border-t md:border-0 border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(t)}
+                          className="p-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                          title="Edit Task"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTask(t.id, t.task_title)}
+                          className="p-1.5 px-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-bold flex items-center transition-all cursor-pointer"
+                          title="Delete Task"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
 
                     </div>
@@ -687,166 +604,160 @@ export const TaskAdminDesk: React.FC<TaskAdminDeskProps> = ({ currentView }) => 
 
         </div>
       ) : (
-        
-        /* VIEW 2: 10-USER CREDENTIAL VAULT & CUSTOM ALIAS MANAGER */
-        <div className="flex-1 w-full max-w-5xl mx-auto p-3.5 sm:p-6 space-y-5">
-          
-          <div className="flex items-center justify-between border-b border-indigo-500/20 pb-4">
-            <div>
-              <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                <User className="w-5 h-5 text-indigo-400" />
-                <span>10-User Credential Vault & Custom Alias Roster</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Admin view of all 10 accounts with visible passwords, 1-tap copy, and inline editable driver/worker names.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleRefresh}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold flex items-center gap-1.5"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-cyan-400' : ''}`} />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
-          </div>
+        /* VIEW 2: 10-USER CREDENTIAL VAULT (REMAINS HIGH-UTILITY & CLEAN) */
+        <div className="flex-1 w-full max-w-6xl mx-auto p-3.5 sm:p-6 space-y-4">
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#0C101C] border border-indigo-500/30 shadow-md">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-cyan-400" />
+                  <span>10-User Passwords & Staff Names</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  View worker passwords with 1-tap copy, and edit driver/staff names.
+                </p>
+              </div>
 
-          {/* User Vault Table */}
-          <div className="border border-indigo-500/20 rounded-2xl overflow-hidden bg-[#0A0E1A]/90 shadow-2xl">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#050811] border-b border-indigo-500/20 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                <tr>
-                  <th className="py-3 px-4">System Identity</th>
-                  <th className="py-3 px-4">Custom Name / Alias (Editable)</th>
-                  <th className="py-3 px-4">Login Email</th>
-                  <th className="py-3 px-4">Password</th>
-                  <th className="py-3 px-4 text-center">Save Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/80 font-medium">
+              <button
+                type="button"
+                onClick={handleRefresh}
+                className="p-2 px-3 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            {/* Table of 10 Users */}
+            <div className="mt-4 border border-slate-800 rounded-xl overflow-hidden bg-[#07090E]">
+              <div className="hidden sm:grid sm:grid-cols-12 gap-3 px-4 py-2.5 bg-slate-900/80 border-b border-slate-800 text-[11px] font-mono font-bold text-slate-400 uppercase">
+                <div className="col-span-2">Account</div>
+                <div className="col-span-4">Custom Staff Name (Editable)</div>
+                <div className="col-span-3">Login Email</div>
+                <div className="col-span-3">Password</div>
+              </div>
+
+              <div className="divide-y divide-slate-800/80">
                 {roster.map((u) => {
-                  const isAdmin = u.role === 'admin';
-                  const currentAlias = editingAlias[u.user_id] ?? (u.custom_alias || u.full_name);
-                  const isVisible = showPasswords[u.user_id];
-                  const rawPwd = u.cached_password_hint || '********';
+                  const isPwVisible = showPasswords[u.user_id];
+                  const isCopied = copiedUser === u.user_id;
+                  const isSaving = savingAlias[u.user_id];
+                  const isSaved = aliasSavedSuccess[u.user_id];
+                  const currentAliasVal = editingAlias[u.user_id] !== undefined ? editingAlias[u.user_id] : (u.custom_alias || '');
 
                   return (
-                    <tr key={u.user_id} className="hover:bg-slate-800/40 transition-colors">
-                      
-                      {/* Identity */}
-                      <td className="py-3.5 px-4 font-bold text-white whitespace-nowrap">
-                        <span className={`px-2 py-0.5 rounded-lg text-[11px] font-mono ${
-                          isAdmin ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                    <div
+                      key={u.user_id}
+                      className="px-4 py-3 flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:gap-3 items-start sm:items-center hover:bg-slate-900/40 transition-colors text-xs"
+                    >
+                      {/* Account Tag */}
+                      <div className="sm:col-span-2">
+                        <span className={`px-2 py-0.5 rounded-md font-mono font-bold text-[11px] ${
+                          u.role === 'admin'
+                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                            : 'bg-indigo-950 text-indigo-300 border border-indigo-500/30'
                         }`}>
-                          {u.full_name}
+                          {u.full_name || u.role}
                         </span>
-                      </td>
+                      </div>
 
-                      {/* Custom Name / Alias (Inline Editable by Admin) */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-1.5 max-w-xs">
+                      {/* Custom Name / Alias Input */}
+                      <div className="sm:col-span-4 w-full">
+                        <div className="flex items-center gap-1.5">
                           <input
                             type="text"
-                            value={currentAlias}
+                            value={currentAliasVal}
                             onChange={(e) => setEditingAlias({ ...editingAlias, [u.user_id]: e.target.value })}
                             onBlur={() => handleSaveAlias(u.user_id)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveAlias(u.user_id);
+                              if (e.key === 'Enter') {
+                                e.currentTarget.blur();
+                              }
                             }}
-                            placeholder="e.g. Ramesh (AP04 Driver)"
-                            className="w-full px-2.5 py-1.5 bg-[#06080F] border border-slate-700/80 rounded-lg text-white font-bold text-xs focus:outline-none focus:border-cyan-400"
+                            placeholder="Assign driver name (e.g. Ramesh)"
+                            className="flex-1 py-1 px-2.5 bg-[#06080F] border border-slate-700 rounded-lg text-white font-bold text-xs focus:outline-none focus:border-cyan-400"
                           />
+                          {isSaved && <span className="text-[10px] text-emerald-400 font-bold shrink-0">Saved!</span>}
+                          {isSaving && <span className="text-[10px] text-cyan-400 animate-spin shrink-0">⏳</span>}
                         </div>
-                      </td>
+                      </div>
 
                       {/* Email */}
-                      <td className="py-3 px-4 font-mono text-slate-300 whitespace-nowrap">
+                      <div className="sm:col-span-3 text-slate-400 font-mono text-[11px]">
                         {u.email}
-                      </td>
+                      </div>
 
-                      {/* Password (Visible with Eye Toggle + Copy) */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 bg-[#06080F] px-2.5 py-1 rounded-lg border border-slate-700/80 w-fit">
-                          <span className="font-mono text-xs font-bold text-amber-300 min-w-[80px]">
-                            {isVisible ? rawPwd : '••••••••••••'}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => togglePasswordVisibility(u.user_id)}
-                            className="p-1 text-slate-400 hover:text-white"
-                            title={isVisible ? 'Hide password' : 'Show password'}
-                          >
-                            {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleCopyPassword(u.user_id, rawPwd)}
-                            className="p-1 text-slate-400 hover:text-cyan-400"
-                            title="Copy password"
-                          >
-                            {copiedUser === u.user_id ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                        </div>
-                      </td>
+                      {/* Password with Eye & Copy */}
+                      <div className="sm:col-span-3 flex items-center gap-1.5">
+                        <span className="font-mono text-amber-300 font-bold bg-[#06080F] px-2 py-1 rounded-lg border border-slate-800 text-xs min-w-[90px] text-center">
+                          {isPwVisible ? u.cached_password_hint || 'No hint' : '••••••••••'}
+                        </span>
 
-                      {/* Save Status Indicator */}
-                      <td className="py-3 px-4 text-center">
-                        {savingAlias[u.user_id] ? (
-                          <span className="text-[10px] text-cyan-400 font-mono">Saving...</span>
-                        ) : aliasSavedSuccess[u.user_id] ? (
-                          <span className="text-[10px] text-emerald-400 font-mono font-bold flex items-center justify-center gap-1">
-                            <Check className="w-3 h-3" /> Saved
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-500 font-mono">Auto-saved</span>
-                        )}
-                      </td>
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility(u.user_id)}
+                          className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                          title={isPwVisible ? 'Hide' : 'Show'}
+                        >
+                          {isPwVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
 
-                    </tr>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPassword(u.user_id, u.cached_password_hint || '')}
+                          className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                          title="Copy Password"
+                        >
+                          {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </div>
 
+            </div>
+
+          </div>
         </div>
       )}
 
       {/* EDIT TASK MODAL */}
       {editingTask && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-2xl bg-[#0D1220] border border-indigo-500/40 p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-indigo-500/20">
-              <h3 className="font-bold text-sm text-white flex items-center gap-1.5">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-[#0D1220] border border-indigo-500/40 p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="font-bold text-sm text-cyan-300 flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-cyan-400" />
-                <span>Edit Operational Task</span>
+                <span>Edit Task</span>
               </h3>
-              <button type="button" onClick={() => setEditingTask(null)} className="text-slate-400 hover:text-white">
+              <button
+                type="button"
+                onClick={() => setEditingTask(null)}
+                className="text-slate-400 hover:text-white"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3">
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Task Title</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Task Title</label>
                 <input
                   type="text"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full p-2.5 bg-[#06080F] border border-slate-700 rounded-xl text-white font-bold"
+                  className="w-full p-2.5 bg-[#06080F] border border-slate-700 rounded-xl text-white text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Assignee</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Assignee</label>
                 <select
                   value={editAssignee}
                   onChange={(e) => setEditAssignee(e.target.value)}
-                  className="w-full p-2.5 bg-[#06080F] border border-slate-700 rounded-xl text-white font-bold"
+                  className="w-full p-2.5 bg-[#06080F] border border-slate-700 rounded-xl text-white text-xs"
                 >
                   {roster
                     .filter((u) => u.role !== 'admin')
@@ -860,42 +771,41 @@ export const TaskAdminDesk: React.FC<TaskAdminDeskProps> = ({ currentView }) => 
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-slate-400 font-bold mb-1">Due Date</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Due Date</label>
                   <input
                     type="date"
                     value={editDate}
                     onChange={(e) => setEditDate(e.target.value)}
-                    className="w-full p-2 bg-[#06080F] border border-slate-700 rounded-xl text-white font-mono"
+                    className="w-full p-2.5 bg-[#06080F] border border-slate-700 rounded-xl text-white text-xs font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 font-bold mb-1">Priority</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Priority</label>
                   <select
                     value={editPriority}
                     onChange={(e) => setEditPriority(e.target.value as TaskPriority)}
-                    className="w-full p-2 bg-[#06080F] border border-slate-700 rounded-xl text-white font-bold"
+                    className="w-full p-2.5 bg-[#06080F] border border-slate-700 rounded-xl text-white text-xs"
                   >
                     <option value="normal">Normal</option>
                     <option value="high">High</option>
-                    <option value="critical">Critical</option>
+                    <option value="critical">Urgent</option>
                     <option value="low">Low</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Remarks / Details</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Notes / Instructions</label>
                 <textarea
                   value={editDesc}
                   onChange={(e) => setEditDesc(e.target.value)}
                   rows={2}
-                  className="w-full p-2.5 bg-[#06080F] border border-slate-700 rounded-xl text-white"
-                  placeholder="Optional details..."
+                  className="w-full p-2.5 bg-[#06080F] border border-slate-700 rounded-xl text-white text-xs"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setEditingTask(null)}
@@ -905,9 +815,9 @@ export const TaskAdminDesk: React.FC<TaskAdminDeskProps> = ({ currentView }) => 
               </button>
               <button
                 type="button"
-                onClick={handleSaveEdit}
                 disabled={savingEdit}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-400 text-slate-950 font-bold text-xs"
+                onClick={handleSaveEdit}
+                className="px-4 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs disabled:opacity-50"
               >
                 {savingEdit ? 'Saving...' : 'Save Changes'}
               </button>
