@@ -61,7 +61,7 @@ export type SortField = 'created_at' | 'collector' | 'business_name' | 'dealer_n
 export type SortOrder = 'asc' | 'desc';
 
 interface AdminDailyPageProps {
-  onNavigateTab: (tab: 'daily' | 'dashboard' | 'tools' | 'users') => void;
+  onNavigateTab: (tab: 'daily' | 'dashboard' | 'tools' | 'users' | 'tasks') => void;
   initialDate?: string;
   isDrilldown?: boolean;
   onClearDrilldown?: () => void;
@@ -586,6 +586,15 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             >
               <Users className="w-3.5 h-3.5" />
               <span>Operators</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('tasks')}
+              className="px-2.5 py-1 text-xs font-bold rounded-md bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 text-cyan-300 hover:text-white border border-indigo-500/30 transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+              title="Launch TaskMatrix OS Enterprise Checklist Terminal"
+            >
+              <span className="text-cyan-400">⚡</span>
+              <span>TaskMatrix</span>
             </button>
           </div>
         </div>
@@ -1867,6 +1876,14 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
         >
           <Users className="w-4 h-4 text-slate-400" />
           <span>Operators</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigateTab('tasks')}
+          className="flex-1 py-1.5 flex flex-col items-center gap-0.5 text-[11px] font-bold rounded-xl text-cyan-300 hover:text-white transition-all cursor-pointer"
+        >
+          <span className="text-cyan-400 text-xs font-black">⚡</span>
+          <span>Tasks</span>
         </button>
       </nav>
 

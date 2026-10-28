@@ -6,9 +6,10 @@ import { LogOut, Wifi, WifiOff, Shield, User, BarChart3, Calendar, Users } from 
 interface HeaderProps {
   currentTab?: 'daily' | 'dashboard' | 'users';
   onTabChange?: (tab: 'daily' | 'dashboard' | 'users') => void;
+  onOpenTasks?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ currentTab = 'daily', onTabChange }) => {
+export const Header: React.FC<HeaderProps> = ({ currentTab = 'daily', onTabChange, onOpenTasks }) => {
   const { profile, role, signOut } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -49,6 +50,19 @@ export const Header: React.FC<HeaderProps> = ({ currentTab = 'daily', onTabChang
 
       {/* Right Controls: Compact Language + Signout */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0 py-1">
+        {/* TaskMatrix OS Switcher Pill */}
+        {onOpenTasks && (
+          <button
+            type="button"
+            onClick={onOpenTasks}
+            className="min-h-[36px] px-2.5 py-1 text-xs font-bold rounded-xl bg-gradient-to-r from-indigo-950 to-slate-900 border border-indigo-500/40 text-cyan-300 hover:text-white hover:border-cyan-400 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Open TaskMatrix OS"
+          >
+            <span className="text-cyan-400">⚡</span>
+            <span className="hidden xs:inline sm:inline">Tasks</span>
+          </button>
+        )}
+
         {/* Language Switcher Pill */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-0.5 flex items-center shadow-inner">
           <button

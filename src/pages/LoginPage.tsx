@@ -306,6 +306,61 @@ export const LoginPage: React.FC = () => {
                     >
                       User 5
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('user6@ithinkai.in'); setPassword(''); }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                        email === 'user6@ithinkai.in'
+                          ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40 shadow-sm'
+                          : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      User 6
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('user7@ithinkai.in'); setPassword(''); }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                        email === 'user7@ithinkai.in'
+                          ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40 shadow-sm'
+                          : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      User 7
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('user8@ithinkai.in'); setPassword(''); }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                        email === 'user8@ithinkai.in'
+                          ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40 shadow-sm'
+                          : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      User 8
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('user9@ithinkai.in'); setPassword(''); }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                        email === 'user9@ithinkai.in'
+                          ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40 shadow-sm'
+                          : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      User 9
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('user10@ithinkai.in'); setPassword(''); }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                        email === 'user10@ithinkai.in'
+                          ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40 shadow-sm'
+                          : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      User 10
+                    </button>
                   </div>
                 </div>
 

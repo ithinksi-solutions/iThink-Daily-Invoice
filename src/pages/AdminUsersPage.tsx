@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 interface AdminUsersPageProps {
-  onNavigateTab: (tab: 'daily' | 'dashboard' | 'tools' | 'users') => void;
+  onNavigateTab: (tab: 'daily' | 'dashboard' | 'tools' | 'users' | 'tasks') => void;
 }
 
 export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigateTab }) => {

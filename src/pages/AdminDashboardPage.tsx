@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 interface DashboardProps {
-  onNavigateTab: (tab: 'daily' | 'dashboard' | 'tools' | 'users') => void;
+  onNavigateTab: (tab: 'daily' | 'dashboard' | 'tools' | 'users' | 'tasks') => void;
   onSelectDate: (dateStr: string) => void;
 }
 

@@ -25,7 +25,11 @@ import {
   Clock
 } from 'lucide-react';
 
-export const OperatorTodayPage: React.FC = () => {
+interface OperatorTodayPageProps {
+  onOpenTasks?: () => void;
+}
+
+export const OperatorTodayPage: React.FC<OperatorTodayPageProps> = ({ onOpenTasks }) => {
   const { user, profile } = useAuth();
   const { t } = useLanguage();
 
@@ -149,7 +153,7 @@ export const OperatorTodayPage: React.FC = () => {
     <div className="h-[100dvh] w-full min-h-[100dvh] overflow-hidden bg-[#030712] text-slate-100 flex flex-col justify-between selection:bg-emerald-500/30 selection:text-emerald-300">
       
       {/* 1. STYLISH TOP HEADER (1 LINE: DAILY INVOICE) */}
-      <Header />
+      <Header onOpenTasks={onOpenTasks} />
 
       {/* Success Notification Toast */}
       <SavedToast
