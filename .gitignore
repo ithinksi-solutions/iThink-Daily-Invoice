@@ -17,4 +17,4 @@ android/.idea/
 android/*.iml
 android/app/*.iml
 *.apk
-
+!public/*.apk
