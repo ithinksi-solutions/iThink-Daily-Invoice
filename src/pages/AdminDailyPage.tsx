@@ -9,7 +9,7 @@ import { AdminSlipDigitizerModal } from '../components/AdminSlipDigitizerModal';
 import { AdminAddEntryModal } from '../components/AdminAddEntryModal';
 import { AdminRangeDeleteModal } from '../components/AdminRangeDeleteModal';
 import { CashBadge, UpiBadge } from '../components/PaymentLogos';
-import { formatAppDate, formatAppTime, formatINR, getCurrentISTDateString } from '../lib/formatters';
+import { formatAppDate, formatAppTime, formatINR, getCurrentISTDateString, toISODateString } from '../lib/formatters';
 import * as XLSX from 'xlsx';
 import {
   Calendar,
@@ -57,7 +57,7 @@ import {
   Wrench,
 } from 'lucide-react';
 
-export type SortField = 'created_at' | 'collector' | 'business_name' | 'dealer_name' | 'cash_amount' | 'phonepe_amount' | 'total_collected' | 'balance_owed';
+export type SortField = 'created_at' | 'sheet_date' | 'collector' | 'business_name' | 'dealer_name' | 'cash_amount' | 'phonepe_amount' | 'total_collected' | 'balance_owed';
 export type SortOrder = 'asc' | 'desc';
 
 interface AdminDailyPageProps {
@@ -76,7 +76,11 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
   const { user, profile, signOut } = useAuth();
   const { language, setLanguage, t } = useLanguage();
 
-  const [selectedDate, setSelectedDate] = useState<string>(initialDate || getCurrentISTDateString());
+  const todayIST = getCurrentISTDateString();
+  const [startDate, setStartDate] = useState<string>(initialDate || todayIST);
+  const [endDate, setEndDate] = useState<string>(initialDate || todayIST);
+  const [datePreset, setDatePreset] = useState<string>(initialDate ? 'single' : 'today');
+  const selectedDate = startDate; // backward compatibility for modal references
   const [selectedBusiness, setSelectedBusiness] = useState<'ALL' | 'STAR' | 'ARBO PLAST'>('ALL');
 
   // Interactive Sorting State
@@ -104,8 +108,10 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
 
   // Sync initialDate on incoming drilldown navigation
   useEffect(() => {
-    if (initialDate && initialDate !== selectedDate) {
-      setSelectedDate(initialDate);
+    if (initialDate && (initialDate !== startDate || initialDate !== endDate)) {
+      setStartDate(initialDate);
+      setEndDate(initialDate);
+      setDatePreset('single');
     }
   }, [initialDate]);
 
@@ -154,14 +160,77 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
     fetchOperators();
   }, []);
 
-  // Fetch entries for the selected date
+  // Helper to compute date string offset from today
+  const getDateOffset = (offsetDays: number): string => {
+    const d = new Date(`${todayIST}T00:00:00`);
+    d.setDate(d.getDate() + offsetDays);
+    return toISODateString(d);
+  };
+
+  // Helper for first day of current month
+  const getFirstDayOfMonth = (): string => {
+    const [year, month] = todayIST.split('-');
+    return `${year}-${month}-01`;
+  };
+
+  const handleDatePresetChange = (preset: string) => {
+    setDatePreset(preset);
+    if (preset === 'today') {
+      setStartDate(todayIST);
+      setEndDate(todayIST);
+    } else if (preset === 'yesterday') {
+      const y = getDateOffset(-1);
+      setStartDate(y);
+      setEndDate(y);
+    } else if (preset === '7days') {
+      setStartDate(getDateOffset(-6));
+      setEndDate(todayIST);
+    } else if (preset === '15days') {
+      setStartDate(getDateOffset(-14));
+      setEndDate(todayIST);
+    } else if (preset === '30days') {
+      setStartDate(getDateOffset(-29));
+      setEndDate(todayIST);
+    } else if (preset === 'this_month') {
+      setStartDate(getFirstDayOfMonth());
+      setEndDate(todayIST);
+    } else if (preset === 'custom') {
+      // Keep current start/end dates
+    }
+  };
+
+  const handleCustomDateChange = (from: string, to: string) => {
+    setDatePreset('custom');
+    if (from && to) {
+      if (from > to) {
+        setStartDate(from);
+        setEndDate(from);
+      } else {
+        setStartDate(from);
+        setEndDate(to);
+      }
+    } else if (from) {
+      setStartDate(from);
+    } else if (to) {
+      setEndDate(to);
+    }
+  };
+  // Fetch entries for the selected date or date range
   const loadDailyEntries = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: sheets, error: sheetsErr } = await supabase
+      let sheetsQuery = supabase
         .from('daily_sheets')
-        .select('id, collector_id')
-        .eq('sheet_date', selectedDate);
+        .select('id, sheet_date, collector_id')
+        .limit(5000);
+
+      if (startDate === endDate) {
+        sheetsQuery = sheetsQuery.eq('sheet_date', startDate);
+      } else {
+        sheetsQuery = sheetsQuery.gte('sheet_date', startDate).lte('sheet_date', endDate);
+      }
+
+      const { data: sheets, error: sheetsErr } = await sheetsQuery;
 
       if (sheetsErr || !sheets || sheets.length === 0) {
         setEntries([]);
@@ -169,38 +238,56 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
         return;
       }
 
+      const sheetMap = new Map<string, string>();
+      sheets.forEach((s) => sheetMap.set(s.id, s.sheet_date));
       const sheetIds = sheets.map((s) => s.id);
 
-      const { data: entriesData, error: entriesErr } = await supabase
-        .from('entries')
-        .select('*')
-        .in('sheet_id', sheetIds)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: true });
+      let allEntriesData: any[] = [];
+      const CHUNK_SIZE = 200;
+      for (let i = 0; i < sheetIds.length; i += CHUNK_SIZE) {
+        const chunk = sheetIds.slice(i, i + CHUNK_SIZE);
+        const { data: entriesData, error: entriesErr } = await supabase
+          .from('entries')
+          .select('*')
+          .in('sheet_id', chunk)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: false })
+          .limit(5000);
 
-      if (entriesErr) {
-        setEntries([]);
-      } else {
-        setEntries((entriesData as Entry[]) || []);
+        if (!entriesErr && entriesData) {
+          allEntriesData = allEntriesData.concat(entriesData);
+        }
       }
+
+      const enrichedEntries: Entry[] = allEntriesData.map((e) => ({
+        ...e,
+        sheet_date: sheetMap.get(e.sheet_id) || (e.created_at ? e.created_at.split('T')[0] : startDate),
+      }));
+
+      setEntries(enrichedEntries);
     } catch (err) {
       console.error('Load daily entries failed:', err);
+      setEntries([]);
     } finally {
       setLoading(false);
     }
-  }, [selectedDate]);
+  }, [startDate, endDate]);
 
   useEffect(() => {
     loadDailyEntries();
   }, [loadDailyEntries]);
 
-  // Operational comparison: fetch previous day total
+  // Operational comparison: fetch previous day total (active only in single-day mode)
   useEffect(() => {
     async function fetchYesterdayTotal() {
+      if (startDate !== endDate) {
+        setYesterdayTotal(null);
+        return;
+      }
       try {
-        const d = new Date(selectedDate);
+        const d = new Date(`${startDate}T00:00:00`);
         d.setDate(d.getDate() - 1);
-        const yDateStr = d.toISOString().split('T')[0];
+        const yDateStr = toISODateString(d);
 
         const { data: ySheets } = await supabase
           .from('daily_sheets')
@@ -231,24 +318,36 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
       }
     }
     fetchYesterdayTotal();
-  }, [selectedDate]);
+  }, [startDate, endDate]);
 
   // Date Navigator Helpers
   const handlePrevDay = () => {
-    const d = new Date(selectedDate);
+    const d = new Date(`${startDate}T00:00:00`);
     d.setDate(d.getDate() - 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    const newDate = toISODateString(d);
+    setStartDate(newDate);
+    setEndDate(newDate);
+    setDatePreset(newDate === todayIST ? 'today' : 'single');
   };
 
   const handleNextDay = () => {
-    const d = new Date(selectedDate);
+    const d = new Date(`${startDate}T00:00:00`);
     d.setDate(d.getDate() + 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    const newDate = toISODateString(d);
+    setStartDate(newDate);
+    setEndDate(newDate);
+    setDatePreset(newDate === todayIST ? 'today' : 'single');
   };
 
   const handleToday = () => {
-    setSelectedDate(getCurrentISTDateString());
+    handleDatePresetChange('today');
   };
+
+  const isMultiDate = startDate !== endDate;
+  const daysSelectedCount = Math.round((new Date(`${endDate}T00:00:00`).getTime() - new Date(`${startDate}T00:00:00`).getTime()) / 86400000) + 1;
+  const dateDisplayLabel = isMultiDate
+    ? `${formatAppDate(startDate)} to ${formatAppDate(endDate)} (${daysSelectedCount} Days)`
+    : formatAppDate(startDate);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -288,6 +387,9 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
       const opB = operators.find((o) => o.id === b.collector_id)?.full_name || '';
       valA = opA.toLowerCase();
       valB = opB.toLowerCase();
+    } else if (sortField === 'sheet_date') {
+      valA = a.sheet_date || (a.created_at ? a.created_at.split('T')[0] : '');
+      valB = b.sheet_date || (b.created_at ? b.created_at.split('T')[0] : '');
     } else if (sortField === 'total_collected') {
       valA = (Number(a.cash_amount) || 0) + (Number(a.phonepe_amount) || 0);
       valB = (Number(b.cash_amount) || 0) + (Number(b.phonepe_amount) || 0);
@@ -503,7 +605,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
       const op = operators.find((o) => o.id === e.collector_id);
       return {
         'S.No': idx + 1,
-        Date: formatAppDate(selectedDate),
+        Date: formatAppDate(e.sheet_date || (e.created_at ? e.created_at.split('T')[0] : startDate)),
         Time: formatAppTime(e.created_at),
         Operator: op?.full_name || 'Operator',
         Business: e.business_name,
@@ -520,7 +622,10 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Collections');
-    XLSX.writeFile(workbook, `Daily_Collections_${formatAppDate(selectedDate)}.xlsx`);
+    const filename = isMultiDate
+      ? `Collections_${startDate}_to_${endDate}.xlsx`
+      : `Daily_Collections_${formatAppDate(startDate)}.xlsx`;
+    XLSX.writeFile(workbook, filename);
   };
 
   return (
@@ -603,35 +708,66 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
         <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
           {/* Date Navigator */}
           <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 shadow-sm">
-            <button
-              type="button"
-              onClick={handlePrevDay}
-              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
-              title="Previous Day"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-              className="bg-transparent text-white font-mono font-bold text-xs px-1.5 outline-none cursor-pointer"
-            />
-            <button
-              type="button"
-              onClick={handleNextDay}
-              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
-              title="Next Day"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleToday}
-              className="px-2 py-0.5 text-[11px] font-bold rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
-            >
-              Today
-            </button>
+            {!isMultiDate ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handlePrevDay}
+                  className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+                  title="Previous Day"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setStartDate(e.target.value);
+                      setEndDate(e.target.value);
+                      setDatePreset(e.target.value === todayIST ? 'today' : 'single');
+                    }
+                  }}
+                  className="bg-transparent text-white font-mono font-bold text-xs px-1.5 outline-none cursor-pointer"
+                />
+                <button
+                  type="button"
+                  onClick={handleNextDay}
+                  className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+                  title="Next Day"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToday}
+                  className={`px-2 py-0.5 text-[11px] font-bold rounded ${
+                    startDate === todayIST
+                      ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  Today
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2 py-0.5">
+                <span className="text-xs font-mono font-bold text-emerald-400">
+                  {formatAppDate(startDate)} – {formatAppDate(endDate)}
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  ({daysSelectedCount}d)
+                </span>
+                <button
+                  type="button"
+                  onClick={handleToday}
+                  className="px-2 py-0.5 text-[11px] font-bold rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 ml-1 cursor-pointer"
+                  title="Reset to Today"
+                >
+                  Reset Today
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Business Filter Pills (Visible on large displays 2xl to prevent header overflow) */}
@@ -822,35 +958,62 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
         {/* Row 1: Date Navigator + Fast Action */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 flex-1 shadow-inner">
-            <button
-              type="button"
-              onClick={handlePrevDay}
-              className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white"
-              title="Previous Day"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-              className="bg-transparent text-white font-mono font-bold text-xs px-1.5 outline-none cursor-pointer flex-1 text-center"
-            />
-            <button
-              type="button"
-              onClick={handleNextDay}
-              className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white"
-              title="Next Day"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleToday}
-              className="px-2.5 py-1 text-[11px] font-bold rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
-            >
-              Today
-            </button>
+            {!isMultiDate ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handlePrevDay}
+                  className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white"
+                  title="Previous Day"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setStartDate(e.target.value);
+                      setEndDate(e.target.value);
+                      setDatePreset(e.target.value === todayIST ? 'today' : 'single');
+                    }
+                  }}
+                  className="bg-transparent text-white font-mono font-bold text-xs px-1.5 outline-none cursor-pointer flex-1 text-center"
+                />
+                <button
+                  type="button"
+                  onClick={handleNextDay}
+                  className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white"
+                  title="Next Day"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToday}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md ${
+                    startDate === todayIST
+                      ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  Today
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center justify-between w-full px-2 py-1">
+                <span className="text-xs font-mono font-bold text-emerald-400">
+                  {formatAppDate(startDate)} – {formatAppDate(endDate)} ({daysSelectedCount}d)
+                </span>
+                <button
+                  type="button"
+                  onClick={handleToday}
+                  className="px-2 py-1 text-[11px] font-bold rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                >
+                  Reset Today
+                </button>
+              </div>
+            )}
           </div>
 
           <button
@@ -927,6 +1090,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             value={filterOperator}
             onChange={(e) => setFilterOperator(e.target.value)}
             className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-md text-[11px] text-white focus:outline-none focus:border-emerald-500"
+            title="Filter by operator"
           >
             <option value="ALL">All Operators</option>
             {operators.map((op) => (
@@ -934,6 +1098,22 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                 {op.full_name}
               </option>
             ))}
+          </select>
+
+          {/* Date Range Preset Selector (Directly Beside Operator Filter) */}
+          <select
+            value={datePreset}
+            onChange={(e) => handleDatePresetChange(e.target.value)}
+            className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-md text-[11px] text-emerald-400 font-bold focus:outline-none focus:border-emerald-500"
+            title="Filter by date range"
+          >
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="7days">Last 7 Days</option>
+            <option value="15days">Last 15 Days</option>
+            <option value="30days">Last 30 Days</option>
+            <option value="this_month">This Month</option>
+            <option value="custom">Custom...</option>
           </select>
 
           <select
@@ -956,6 +1136,32 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             <option value="phonepe_amount-desc">Sort: UPI</option>
           </select>
         </div>
+
+        {/* Mobile Custom Date Range Inputs (Shown when Custom is selected) */}
+        {datePreset === 'custom' && (
+          <div className="flex items-center justify-between gap-2 p-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs">
+            <div className="flex items-center gap-1 flex-1">
+              <span className="text-slate-400 text-[10px] font-bold">From:</span>
+              <input
+                type="date"
+                value={startDate}
+                max={endDate}
+                onChange={(e) => e.target.value && handleCustomDateChange(e.target.value, endDate)}
+                className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono text-xs flex-1 text-center"
+              />
+            </div>
+            <div className="flex items-center gap-1 flex-1">
+              <span className="text-slate-400 text-[10px] font-bold">To:</span>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate}
+                onChange={(e) => e.target.value && handleCustomDateChange(startDate, e.target.value)}
+                className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono text-xs flex-1 text-center"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Row 4: Money Received / Approval Filter & Bulk Action (Revolut Style) */}
         <div className="flex items-center justify-between gap-1.5 pt-1">
@@ -1174,6 +1380,71 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
           </div>
 
+          {/* Date Filter & Multi/Custom Range Selector (Directly Beside Operator Filter) */}
+          <div className="relative inline-flex items-center gap-1.5 bg-slate-950/90 border border-slate-800 rounded-lg p-0.5 shadow-inner">
+            <div className="flex items-center gap-1 pl-2 text-slate-400">
+              <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            </div>
+
+            <div className="relative inline-flex items-center">
+              <select
+                value={datePreset}
+                onChange={(e) => handleDatePresetChange(e.target.value)}
+                className="appearance-none pl-1 pr-6 py-1 bg-transparent border-0 text-xs font-bold text-emerald-300 hover:text-emerald-200 focus:outline-none cursor-pointer"
+                title="Select date range"
+              >
+                <option value="today" className="bg-slate-950 text-white">Today</option>
+                <option value="yesterday" className="bg-slate-950 text-white">Yesterday</option>
+                <option value="7days" className="bg-slate-950 text-white">Last 7 Days</option>
+                <option value="15days" className="bg-slate-950 text-white">Last 15 Days</option>
+                <option value="30days" className="bg-slate-950 text-white">Last 30 Days</option>
+                <option value="this_month" className="bg-slate-950 text-white">This Month</option>
+                <option value="custom" className="bg-slate-950 text-white">Custom Range...</option>
+              </select>
+              <ChevronDown className="w-3 h-3 text-emerald-400/80 absolute right-1 pointer-events-none" />
+            </div>
+
+            {/* Custom Date Pickers (Inline when Custom is selected) */}
+            {datePreset === 'custom' && (
+              <div className="flex items-center gap-1 pl-1.5 border-l border-slate-800 text-xs">
+                <input
+                  type="date"
+                  value={startDate}
+                  max={endDate}
+                  onChange={(e) => e.target.value && handleCustomDateChange(e.target.value, endDate)}
+                  className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
+                  title="From Date"
+                />
+                <span className="text-slate-500 font-bold">➔</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  min={startDate}
+                  onChange={(e) => e.target.value && handleCustomDateChange(startDate, e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
+                  title="To Date"
+                />
+              </div>
+            )}
+
+            {/* Active Multi-Date Pill with Quick Reset */}
+            {isMultiDate && (
+              <div className="flex items-center gap-1 pl-1.5 pr-1 border-l border-slate-800">
+                <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-800/60 rounded px-1.5 py-0.5 whitespace-nowrap">
+                  {formatAppDate(startDate)} – {formatAppDate(endDate)} ({daysSelectedCount}d)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleDatePresetChange('today')}
+                  className="p-0.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+                  title="Reset to Today"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Payment Mode Dropdown with Custom Chevron */}
           <div className="relative hidden sm:inline-flex items-center">
             <select
@@ -1212,7 +1483,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
         {loading ? (
           <div className="h-full flex items-center justify-center text-slate-500 text-xs animate-pulse gap-2">
             <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
-            <span>Loading collection records for {formatAppDate(selectedDate)}...</span>
+            <span>Loading collection records for {dateDisplayLabel}...</span>
           </div>
         ) : filteredEntries.length === 0 ? (
           
@@ -1226,7 +1497,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
 
               <div className="space-y-1">
                 <h3 className="text-lg font-bold text-white tracking-tight">
-                  No Collections Logged for {formatAppDate(selectedDate)}
+                  No Collections Logged for {dateDisplayLabel}
                 </h3>
                 <p className="text-xs text-slate-400 max-w-md mx-auto">
                   No records found under the current filters. Did an operator hand over a physical handwritten slip? Or would you like to record a direct manual collection?
@@ -1320,6 +1591,22 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
               <thead className="sticky top-0 z-20 bg-slate-950 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 backdrop-blur-md select-none">
                 <tr>
                   <th className="py-2.5 px-3 text-center w-10">#</th>
+
+                  {/* Date */}
+                  <th
+                    onClick={() => handleToggleSort('sheet_date')}
+                    className="py-2.5 px-3 cursor-pointer hover:text-white transition-colors"
+                    title="Click to sort by Date"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Date</span>
+                      {sortField === 'sheet_date' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-emerald-400" /> : <ArrowDown className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-600 hover:text-slate-400" />
+                      )}
+                    </div>
+                  </th>
 
                   {/* Time */}
                   <th
@@ -1472,6 +1759,11 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                       {/* S.No */}
                       <td className="py-2.5 px-3 text-center font-mono text-slate-500 text-[11px]">
                         {idx + 1}
+                      </td>
+
+                      {/* Date */}
+                      <td className="py-2.5 px-3 font-mono text-slate-300 whitespace-nowrap text-[11px] font-semibold">
+                        {formatAppDate(e.sheet_date || (e.created_at ? e.created_at.split('T')[0] : startDate))}
                       </td>
 
                       {/* Time */}
@@ -1633,8 +1925,8 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
               {/* Table Footer with Pinned Column Sums */}
               <tfoot className="sticky bottom-0 z-20 bg-slate-950 border-t-2 border-slate-800 font-bold text-xs backdrop-blur-md">
                 <tr>
-                  <td colSpan={5} className="py-2.5 px-3 text-right uppercase tracking-wider text-slate-400">
-                    Day Totals ({filteredEntries.length} Records):
+                  <td colSpan={6} className="py-2.5 px-3 text-right uppercase tracking-wider text-slate-400">
+                    {isMultiDate ? 'Period' : 'Day'} Totals ({filteredEntries.length} Records):
                   </td>
                   <td className="py-2.5 px-3 text-right font-mono text-emerald-400 font-black">
                     {formatINR(visibleCash)}
@@ -1676,7 +1968,9 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                           {e.business_name}
                         </span>
                         <span className="text-slate-400 font-semibold">{op?.full_name || 'Operator'}</span>
-                        <span className="text-slate-500 font-mono text-[11px]">{formatAppTime(e.created_at)}</span>
+                        <span className="text-slate-400 font-mono text-[11px]">
+                          {formatAppDate(e.sheet_date || (e.created_at ? e.created_at.split('T')[0] : startDate))} • {formatAppTime(e.created_at)}
+                        </span>
                         <span
                           className={`px-1.5 py-0.5 rounded text-[9px] font-bold inline-flex items-center gap-1 ${
                             e.status === 'approved'
@@ -1831,7 +2125,13 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
       {/* 4. POWER BI COMPACT STATUS BAR (HEIGHT 28PX - Desktop only) */}
       <footer className="hidden md:flex h-7 bg-slate-950 border-t border-slate-800/80 px-3 sm:px-4 items-center justify-between text-[11px] text-slate-400 shrink-0 z-20">
         <div className="flex items-center gap-2">
-          <span>Date: <strong className="text-white font-mono">{formatAppDate(selectedDate)}</strong></span>
+          <span>Date: <strong className="text-white font-mono">{dateDisplayLabel}</strong></span>
+          {filterOperator !== 'ALL' && (
+            <>
+              <span className="text-slate-700">•</span>
+              <span>Operator: <strong className="text-emerald-400">{operators.find((o) => o.id === filterOperator)?.full_name || 'User'}</strong></span>
+            </>
+          )}
           <span className="text-slate-700">•</span>
           <span>Showing: <strong className="text-emerald-400 font-mono">{filteredEntries.length}</strong> collections</span>
           <span className="text-slate-700">•</span>
@@ -1902,7 +2202,9 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
         isOpen={isDigitizerOpen}
         onClose={() => setIsDigitizerOpen(false)}
         onSuccess={(count, total, date) => {
-          setSelectedDate(date);
+          setStartDate(date);
+          setEndDate(date);
+          setDatePreset(date === todayIST ? 'today' : 'single');
           showToast(`Successfully verified & committed ${count} entries from slip (${formatINR(total)})`);
           loadDailyEntries();
         }}
