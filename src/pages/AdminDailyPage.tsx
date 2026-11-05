@@ -770,42 +770,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             )}
           </div>
 
-          {/* Business Filter Pills (Visible on large displays 2xl to prevent header overflow) */}
-          <div className="hidden 2xl:flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[11px] font-bold shadow-sm">
-            <button
-              type="button"
-              onClick={() => setSelectedBusiness('ALL')}
-              className={`px-2 py-1 rounded transition-all ${
-                selectedBusiness === 'ALL'
-                  ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              All ({formatINR(totals.ALL)})
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedBusiness('STAR')}
-              className={`px-2 py-1 rounded transition-all ${
-                selectedBusiness === 'STAR'
-                  ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              STAR ({formatINR(totals.STAR)})
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedBusiness('ARBO PLAST')}
-              className={`px-2 py-1 rounded transition-all ${
-                selectedBusiness === 'ARBO PLAST'
-                  ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              ARBO ({formatINR(totals['ARBO PLAST'])})
-            </button>
-          </div>
+
         </div>
 
         {/* Right: Actions (HITL Digitizer, Direct Add, Gallery, Backup, Export, Language, SignOut) */}
@@ -1369,7 +1334,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
               placeholder="Filter dealer..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-32 lg:w-44 focus:w-56 transition-all duration-200 px-2.5 py-1 pl-7 pr-6 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
+              className="w-28 lg:w-36 focus:w-48 transition-all duration-200 px-2.5 py-1 pl-7 pr-6 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
             />
             <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             {searchQuery && (
@@ -1382,6 +1347,50 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                 <X className="w-3 h-3" />
               </button>
             )}
+          </div>
+
+          {/* Business Filter Pills (STAR / ARBO PLAST / ALL) */}
+          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 text-xs font-bold shadow-inner shrink-0">
+            <button
+              type="button"
+              onClick={() => setSelectedBusiness('ALL')}
+              className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
+                selectedBusiness === 'ALL'
+                  ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Show all businesses"
+            >
+              <span>All Business</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedBusiness('STAR')}
+              className={`px-2.5 py-1 rounded transition-all cursor-pointer flex items-center gap-1 ${
+                selectedBusiness === 'STAR'
+                  ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Filter STAR collections only"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span>STAR</span>
+              <span className="text-[10px] font-mono opacity-85">({formatINR(totals.STAR)})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedBusiness('ARBO PLAST')}
+              className={`px-2.5 py-1 rounded transition-all cursor-pointer flex items-center gap-1 ${
+                selectedBusiness === 'ARBO PLAST'
+                  ? 'bg-teal-500 text-slate-950 font-black shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Filter ARBO PLAST collections only"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+              <span>ARBO PLAST</span>
+              <span className="text-[10px] font-mono opacity-85">({formatINR(totals['ARBO PLAST'])})</span>
+            </button>
           </div>
 
           {/* Operator Dropdown */}
@@ -1479,10 +1488,11 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
           </div>
 
           {/* Clear Filters Reset Button */}
-          {(filterOperator !== 'ALL' || filterMode !== 'ALL' || filterStatus !== 'ALL' || searchQuery.trim() !== '') && (
+          {(selectedBusiness !== 'ALL' || filterOperator !== 'ALL' || filterMode !== 'ALL' || filterStatus !== 'ALL' || searchQuery.trim() !== '') && (
             <button
               type="button"
               onClick={() => {
+                setSelectedBusiness('ALL');
                 setFilterOperator('ALL');
                 setFilterMode('ALL');
                 setFilterStatus('ALL');
