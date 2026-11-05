@@ -827,11 +827,11 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
           <button
             type="button"
             onClick={() => setIsAddEntryOpen(true)}
-            className="hidden xl:flex px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold items-center gap-1.5 transition-all shadow-sm"
+            className="hidden xl:flex px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
             title="Record a single urgent collection directly as Admin"
           >
             <Plus className="w-3.5 h-3.5 text-emerald-400" />
-            <span>+ Entry</span>
+            <span>Entry</span>
           </button>
 
           {/* Day Slips Gallery Button */}
@@ -870,14 +870,15 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             <span>Purge Range</span>
           </button>
 
-          {/* Export Excel (Desktop - Visible on 2xl) */}
+          {/* Export Excel (Desktop & Laptop Shortcut) */}
           <button
             type="button"
             onClick={handleExportExcel}
-            className="hidden 2xl:flex px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-600 hover:text-white border border-slate-700 text-slate-200 text-xs font-bold items-center gap-1 transition-all"
-            title="Download Excel for Selected Date"
+            className="hidden lg:flex px-2.5 py-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white border border-emerald-500/40 text-xs font-bold items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            title="Download Excel Spreadsheet (.xlsx)"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-200" />
+            <Download className="w-3 h-3 text-white" />
             <span>Excel</span>
           </button>
 
@@ -1203,28 +1204,41 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             </button>
           </div>
 
-          {pendingEntries.length > 0 && (
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={handleApproveAllPending}
-              className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
-              title="Mark All Pending as Money Received"
+              onClick={handleExportExcel}
+              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+              title="Download Excel spreadsheet"
             >
-              <Check className="w-3 h-3 stroke-[3]" />
-              <span>Approve All</span>
+              <FileSpreadsheet className="w-3 h-3 text-emerald-100" />
+              <Download className="w-2.5 h-2.5 text-white" />
+              <span>Excel</span>
             </button>
-          )}
+
+            {pendingEntries.length > 0 && (
+              <button
+                type="button"
+                onClick={handleApproveAllPending}
+                className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+                title="Mark All Pending as Money Received"
+              >
+                <Check className="w-3 h-3 stroke-[3]" />
+                <span>Approve All</span>
+              </button>
+            )}
+          </div>
         </div>
 
       </div>
 
-      {/* 2. POWER BI EXECUTIVE SCORECARD STRIP & INLINE FILTERS (HEIGHT 48PX - Desktop only) */}
-      <div className="hidden md:flex h-12 bg-slate-900/90 border-b border-slate-800 px-3 sm:px-4 items-center justify-between gap-3 shrink-0 text-xs z-10 shadow-sm">
+      {/* 2. POWER BI EXECUTIVE SCORECARD STRIP (Desktop & Laptop - Dedicated Height 42px) */}
+      <div className="hidden md:flex h-11 bg-slate-950/80 border-b border-slate-800/80 px-3 sm:px-4 items-center justify-between gap-3 shrink-0 text-xs z-10 backdrop-blur-md">
         
-        {/* Power BI KPI Executive Tiles */}
-        <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap">
+        {/* Power BI KPI Executive Tiles - Full Width, Unclipped */}
+        <div className="flex items-center gap-2.5 overflow-x-auto whitespace-nowrap min-w-0 py-1">
           {/* Cash Scorecard */}
-          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800/80">
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-800 shrink-0 shadow-sm">
             <CashBadge size="xs" />
             <div>
               <span className="block text-slate-400 uppercase text-[9px] font-bold leading-none">Cash In-Hand</span>
@@ -1232,11 +1246,11 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                 {formatINR(visibleCash)}
               </span>
             </div>
-            <span className="text-[10px] text-slate-500 font-mono ml-1">({cashCount})</span>
+            <span className="text-[10px] text-slate-500 font-mono ml-0.5">({cashCount})</span>
           </div>
 
           {/* UPI Scorecard */}
-          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800/80">
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-800 shrink-0 shadow-sm">
             <UpiBadge size="xs" />
             <div>
               <span className="block text-slate-400 uppercase text-[9px] font-bold leading-none">UPI Digital</span>
@@ -1244,11 +1258,11 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                 {formatINR(visiblePhonePe)}
               </span>
             </div>
-            <span className="text-[10px] text-slate-500 font-mono ml-1">({phonePeCount})</span>
+            <span className="text-[10px] text-slate-500 font-mono ml-0.5">({phonePeCount})</span>
           </div>
 
           {/* Grand Total Scorecard */}
-          <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border border-emerald-500/30">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border border-emerald-500/30 shrink-0 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
             <div>
               <span className="block text-emerald-300 uppercase text-[9px] font-black leading-none">Net Collections</span>
@@ -1258,10 +1272,10 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             </div>
           </div>
 
-          {/* Operational Comparison Chip vs Yesterday (Executive 5-Second Story) */}
-          {yesterdayTotal !== null && yesterdayTotal > 0 && (
+          {/* Operational Comparison Chip vs Yesterday (Active in single-day mode) */}
+          {yesterdayTotal !== null && yesterdayTotal > 0 && !isMultiDate && (
             <div
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold shrink-0 ${
                 visibleGrand >= yesterdayTotal
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                   : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
@@ -1283,9 +1297,9 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             </div>
           )}
 
-          {/* Total Balances Owed */}
+          {/* Total Balances Owed - NEVER CLIPPED */}
           {visibleBalOwed > 0 && (
-            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 shrink-0 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-amber-400"></span>
               <div>
                 <span className="block text-amber-300 uppercase text-[9px] font-bold leading-none">Balance Owed</span>
@@ -1297,51 +1311,58 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
           )}
 
           {/* Received Scorecard */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-emerald-500/30">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-emerald-500/30 shrink-0 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
             <div>
               <span className="block text-slate-400 uppercase text-[9px] font-bold leading-none">Received</span>
               <span className="font-mono font-black text-emerald-400 text-xs leading-none">
-                {formatINR(approvedTotal)}
+                {formatINR(visibleApprovedTotal)}
               </span>
             </div>
-            <span className="text-[10px] text-slate-500 font-mono ml-0.5">({approvedEntries.length})</span>
+            <span className="text-[10px] text-slate-500 font-mono ml-0.5">({visibleApprovedEntries.length})</span>
           </div>
 
           {/* Pending Handover Scorecard */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-amber-500/30">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-amber-500/30 shrink-0 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <div>
               <span className="block text-amber-300 uppercase text-[9px] font-bold leading-none">Pending Handover</span>
               <span className="font-mono font-black text-amber-400 text-xs leading-none">
-                {formatINR(pendingTotal)}
+                {formatINR(visiblePendingTotal)}
               </span>
             </div>
-            <span className="text-[10px] text-amber-500/80 font-mono ml-0.5">({pendingEntries.length})</span>
+            <span className="text-[10px] text-amber-500/80 font-mono ml-0.5">({visiblePendingEntries.length})</span>
           </div>
+        </div>
 
-          {pendingEntries.length > 0 && (
+        {/* Right side: Bulk Action & Records Count */}
+        <div className="flex items-center gap-2 shrink-0">
+          {visiblePendingEntries.length > 0 && (
             <button
               type="button"
               onClick={handleApproveAllPending}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer active:scale-95"
               title="Mark all pending collections as received"
             >
               <Check className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Approve All ({pendingEntries.length})</span>
+              <span>Approve All ({visiblePendingEntries.length})</span>
             </button>
           )}
 
-          <span className="text-slate-700">|</span>
-
-          <span className="font-mono text-slate-400 text-[11px]">
-            {filteredEntries.length} {filteredEntries.length === 1 ? 'Record' : 'Records'}
-          </span>
+          <div className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-400 shrink-0">
+            <strong className="text-white font-bold">{filteredEntries.length}</strong> {filteredEntries.length === 1 ? 'Record' : 'Records'}
+          </div>
         </div>
 
-        {/* In-Line Power BI Filter Controls (Enterprise Styled Slicers) */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Dealer Quick Search with Smooth Width Expansion and Clear CTA */}
+      </div>
+
+      {/* 3. FILTER SLICERS & PRIMARY ACTION TOOLBAR (Features Prominent Download Excel Button) */}
+      <div className="hidden md:flex h-11 bg-slate-900/90 border-b border-slate-800 px-3 sm:px-4 items-center justify-between gap-3 shrink-0 text-xs z-10 shadow-sm">
+        
+        {/* Left: Filter Slicers (Search, Operator, Date Presets, Custom Pickers, Mode, Status) */}
+        <div className="flex items-center gap-2 overflow-x-auto min-w-0">
+          
+          {/* Dealer Quick Search */}
           <div className="relative">
             <input
               type="text"
@@ -1363,12 +1384,12 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             )}
           </div>
 
-          {/* Operator Dropdown with Custom Chevron and Dark Theme Styling */}
+          {/* Operator Dropdown */}
           <div className="relative inline-flex items-center">
             <select
               value={filterOperator}
               onChange={(e) => setFilterOperator(e.target.value)}
-              className="appearance-none pl-2.5 pr-7 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-medium text-slate-200 hover:border-slate-700 focus:outline-none focus:border-emerald-500 cursor-pointer shadow-inner"
+              className="appearance-none pl-2.5 pr-7 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-semibold text-slate-200 hover:border-slate-700 focus:outline-none focus:border-emerald-500 cursor-pointer shadow-inner"
             >
               <option value="ALL" className="bg-slate-950 text-white">All Operators</option>
               {operators.map((op) => (
@@ -1381,7 +1402,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
           </div>
 
           {/* Date Filter & Multi/Custom Range Selector (Directly Beside Operator Filter) */}
-          <div className="relative inline-flex items-center gap-1.5 bg-slate-950/90 border border-slate-800 rounded-lg p-0.5 shadow-inner">
+          <div className="relative inline-flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg p-0.5 shadow-inner">
             <div className="flex items-center gap-1 pl-2 text-slate-400">
               <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             </div>
@@ -1426,27 +1447,10 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
                 />
               </div>
             )}
-
-            {/* Active Multi-Date Pill with Quick Reset */}
-            {isMultiDate && (
-              <div className="flex items-center gap-1 pl-1.5 pr-1 border-l border-slate-800">
-                <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-800/60 rounded px-1.5 py-0.5 whitespace-nowrap">
-                  {formatAppDate(startDate)} – {formatAppDate(endDate)} ({daysSelectedCount}d)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleDatePresetChange('today')}
-                  className="p-0.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
-                  title="Reset to Today"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
           </div>
 
-          {/* Payment Mode Dropdown with Custom Chevron */}
-          <div className="relative hidden sm:inline-flex items-center">
+          {/* Payment Mode Slicer */}
+          <div className="relative inline-flex items-center">
             <select
               value={filterMode}
               onChange={(e) => setFilterMode(e.target.value)}
@@ -1460,8 +1464,8 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
           </div>
 
-          {/* Status Dropdown with Custom Chevron */}
-          <div className="relative hidden lg:inline-flex items-center">
+          {/* Status Slicer */}
+          <div className="relative inline-flex items-center">
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as any)}
@@ -1473,12 +1477,45 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             </select>
             <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
           </div>
+
+          {/* Clear Filters Reset Button */}
+          {(filterOperator !== 'ALL' || filterMode !== 'ALL' || filterStatus !== 'ALL' || searchQuery.trim() !== '') && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilterOperator('ALL');
+                setFilterMode('ALL');
+                setFilterStatus('ALL');
+                setSearchQuery('');
+              }}
+              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+              title="Reset all filters"
+            >
+              <X className="w-3 h-3" />
+              <span>Clear</span>
+            </button>
+          )}
+
+        </div>
+
+        {/* Right: PRIMARY PROMINENT EXCEL DOWNLOAD BUTTON WITH DOWNLOAD SYMBOL */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 border border-emerald-400/40 transition-all cursor-pointer group"
+            title="Download collection records in Excel spreadsheet (.xlsx)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-100 group-hover:scale-110 transition-transform" />
+            <Download className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+            <span>Download Excel</span>
+          </button>
         </div>
 
       </div>
 
-      {/* 3. POWER BI DATA CANVAS (REMAINDER VIEWPORT HEIGHT - STRICT INTERNAL SCROLL) */}
-      <main className="flex-1 overflow-y-auto w-full px-2 sm:px-4 py-2 relative">
+      {/* 4. MAIN WORKSPACE CANVAS (FLEX-1 INTERNAL VIEWPORT) */}
+      <main className="flex-1 min-h-0 w-full px-2 sm:px-4 py-2 relative flex flex-col overflow-hidden">
         
         {loading ? (
           <div className="h-full flex items-center justify-center text-slate-500 text-xs animate-pulse gap-2">
@@ -1583,7 +1620,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
         ) : (
           <>
             {/* Desktop Table View (Power BI Financial Data Grid) */}
-            <div className="hidden md:block border border-slate-800 rounded-2xl shadow-2xl bg-slate-900/80 backdrop-blur-sm overflow-y-auto max-h-[calc(100dvh-155px)]">
+            <div className="hidden md:flex flex-col flex-1 min-h-0 border border-slate-800 rounded-2xl shadow-2xl bg-slate-900/80 backdrop-blur-sm overflow-y-auto">
             <table className="w-full text-left border-collapse text-xs">
               
               {/* Sticky Table Header */}
@@ -1948,7 +1985,7 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
             </div>
 
             {/* Mobile Card List View for Admin (Touch-Optimized Revolut Style) */}
-            <div className="md:hidden space-y-2.5 pb-6">
+            <div className="md:hidden flex-1 overflow-y-auto space-y-2.5 pb-6">
               {(searchQuery.trim() ? sortedEntries : sortedEntries.slice(0, mobileVisibleCount)).map((e) => {
                 const op = operators.find((o) => o.id === e.collector_id);
                 return (
