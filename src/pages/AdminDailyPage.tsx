@@ -354,13 +354,17 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
     setTimeout(() => setToastMessage(null), 5000);
   };
 
-  // Business Totals
+  // Business Totals (Scoped to active Operator filter so pill amounts match the selected user)
+  const scopedEntries = filterOperator === 'ALL'
+    ? entries
+    : entries.filter((e) => e.collector_id === filterOperator);
+
   const totals = {
-    ALL: entries.reduce((acc, curr) => acc + (curr.total_collected || 0), 0),
-    STAR: entries
+    ALL: scopedEntries.reduce((acc, curr) => acc + (curr.total_collected || 0), 0),
+    STAR: scopedEntries
       .filter((e) => e.business_name === 'STAR')
       .reduce((acc, curr) => acc + (curr.total_collected || 0), 0),
-    'ARBO PLAST': entries
+    'ARBO PLAST': scopedEntries
       .filter((e) => e.business_name === 'ARBO PLAST')
       .reduce((acc, curr) => acc + (curr.total_collected || 0), 0),
   };
@@ -1612,13 +1616,40 @@ export const AdminDailyPage: React.FC<AdminDailyPageProps> = ({
 
               </div>
 
-              {/* Quick Jump Bar */}
+              {/* Smart Quick Jump & Filter Resolvers */}
               <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
-                <span>Quick Jump:</span>
+                <span className="font-semibold text-slate-400">Quick Actions:</span>
+                {selectedBusiness !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBusiness('ALL')}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold hover:bg-emerald-500/25 transition-all cursor-pointer"
+                  >
+                    View All Business
+                  </button>
+                )}
+                {filterOperator !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterOperator('ALL')}
+                    className="px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold hover:bg-indigo-500/25 transition-all cursor-pointer"
+                  >
+                    View All Operators
+                  </button>
+                )}
+                {(datePreset === 'today' || datePreset === 'yesterday' || datePreset === '7days') && (
+                  <button
+                    type="button"
+                    onClick={() => handleDatePresetChange('15days')}
+                    className="px-2.5 py-1 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-bold hover:bg-cyan-500/25 transition-all cursor-pointer"
+                  >
+                    Expand to Last 15 Days
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleToday}
-                  className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 hover:border-emerald-500 text-slate-300 font-bold hover:text-white"
+                  className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 hover:border-emerald-500 text-slate-300 font-bold hover:text-white transition-all cursor-pointer"
                 >
                   Today
                 </button>
