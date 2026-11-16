@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab = 'daily', onTabChang
             title="Open TaskMatrix OS"
           >
             <span className="text-cyan-400">⚡</span>
-            <span className="hidden xs:inline sm:inline">Tasks</span>
+            <span>Tasks</span>
           </button>
         )}
 
