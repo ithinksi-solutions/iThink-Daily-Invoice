@@ -225,7 +225,24 @@ export const AdminToolsPage: React.FC<AdminToolsPageProps> = ({ onNavigateTab })
               <Users className="w-3.5 h-3.5" />
               <span>{t('userManagement')}</span>
             </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('tasks')}
+              className="px-2.5 py-1 text-xs font-bold rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 transition-colors flex items-center gap-1 ml-1 cursor-pointer"
+            >
+              <span className="text-cyan-400">⚡</span>
+              <span>TaskMatrix</span>
+            </button>
           </div>
+          <button
+            type="button"
+            onClick={() => onNavigateTab('tasks')}
+            className="md:hidden px-2 py-0.5 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-cyan-300 hover:text-white text-xs font-black flex items-center gap-1 shadow-sm cursor-pointer shrink-0"
+            title="Launch TaskMatrix OS"
+          >
+            <span className="text-cyan-400">⚡</span>
+            <span>Tasks</span>
+          </button>
         </div>
 
         {/* Right: Language & Logout */}
@@ -536,6 +553,14 @@ export const AdminToolsPage: React.FC<AdminToolsPageProps> = ({ onNavigateTab })
         >
           <Users className="w-4 h-4 text-slate-400" />
           <span>{t('userManagement')}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigateTab('tasks')}
+          className="flex-1 py-1.5 flex flex-col items-center gap-0.5 text-[11px] font-bold rounded-xl text-cyan-300 hover:text-white transition-all cursor-pointer"
+        >
+          <span className="text-cyan-400 text-xs font-black">⚡</span>
+          <span>Tasks</span>
         </button>
       </nav>
 
